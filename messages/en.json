@@ -1,0 +1,12 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "advisor": "Advisor",
+    "market": "Mandi Rates",
+    "settings": "Settings"
+  },
+  "alerts": {
+    "irrigation": "Irrigation Needed",
+    "disease": "Symptom Logged"
+  }
+}

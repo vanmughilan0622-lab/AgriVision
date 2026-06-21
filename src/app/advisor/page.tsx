@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, User, Bot, AlertCircle, Sparkles, Loader2, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { chatWithHuggingFace } from "@/app/actions/chat-hf";
+import { getDiagnosisHistory } from "@/app/actions/history-actions";
 import { useLanguage } from "@/lib/language-context";
 
 interface Message {
@@ -54,7 +55,19 @@ export default function AdvisorPage() {
     const [apiKey, setApiKey] = useState<string | null>(null);
     const [language, setLanguage] = useState<string>(globalLang);
     const [error, setError] = useState<string | null>(null);
+    const [scanContext, setScanContext] = useState<string>("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        async function fetchContext() {
+            const res = await getDiagnosisHistory();
+            if (res.success && res.data && res.data.length > 0) {
+                const latest = res.data[0];
+                setScanContext(`The farmer recently scanned a crop. The AI detected "${latest.diseaseName}" with severity "${latest.severity}". Description: ${latest.description}. Keep this in mind if they ask about treatments or prevention.`);
+            }
+        }
+        fetchContext();
+    }, []);
 
     useEffect(() => {
         const key = localStorage.getItem("huggingface_api_key");
@@ -63,7 +76,9 @@ export default function AdvisorPage() {
     }, [globalLang]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (messages.length > 0 || isLoading) {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
     }, [messages, isLoading]);
 
     const handleSubmit = async (e?: React.FormEvent, overrideInput?: string) => {
@@ -82,7 +97,8 @@ export default function AdvisorPage() {
             const response = await chatWithHuggingFace(
                 newMessages.map(m => ({ role: m.role, content: m.content })),
                 apiKey || undefined,
-                language
+                language,
+                scanContext
             );
 
             if (!response) throw new Error("No response from the advisor.");

@@ -10,7 +10,7 @@ import { LanguageProvider } from "@/lib/language-context";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NeuralField Resilience Platform",
+  title: "AgriVision Resilience Platform",
   description: "Advanced agricultural management for modern farmers.",
 };
 

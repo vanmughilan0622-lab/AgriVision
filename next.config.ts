@@ -1,13 +1,19 @@
-import type { NextConfig } from "next";
+// @ts-expect-error: next-pwa missing types
+import withPWAInit from 'next-pwa';
+import createNextIntlPlugin from 'next-intl/plugin';
 
-const nextConfig: NextConfig = {
+const withNextIntl = createNextIntlPlugin();
 
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-  }
+const withPWA = withPWAInit({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
+  skipWaiting: true,
+});
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // your other next config options here
 };
 
-export default nextConfig;
+export default withNextIntl(withPWA(nextConfig));

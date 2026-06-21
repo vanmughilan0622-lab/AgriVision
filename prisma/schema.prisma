@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  phone            String   @unique
+  role             String   @default("farmer") // farmer, advisor, admin
+  language         String   @default("hi")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  // Auth
+  password         String?  // Optional for now if OTP is used, but needed for password login
+  name             String?
+
+  // Relations
+  farms            Farm[]
+  consentLogs      ConsentLog[]
+  deletionRequests DataDeletionRequest[]
+  onboarding       OnboardingProgress?
+  adviceReceived   Advice[] @relation("FarmerAdvice")
+  diagnosisScans   DiagnosisScan[]
+  notifications    Notification[]
+}
+
+model OnboardingProgress {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id])
+  videoTutorial1Watched   Boolean  @default(false)
+  videoTutorial2Watched   Boolean  @default(false)
+  advisorCallCompleted    Boolean  @default(false)
+  sensorSetupConfirmed    Boolean  @default(false)
+  firstAlertReceived      Boolean  @default(false)
+  completedAt             DateTime?
+}
+
+model ConsentLog {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  termsVersion    String
+  termsHash       String
+  consentGivenAt  DateTime @default(now())
+  ipAddress       String
+  userAgent       String
+  otpVerified     Boolean
+  otpVerifiedAt   DateTime?
+  revokedAt       DateTime?
+  
+  @@index([userId, consentGivenAt])
+}
+
+model DataDeletionRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  requestedAt DateTime @default(now())
+  status      String   @default("pending") // pending, soft_deleted, deleted
+}
+
+model Farm {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  latitude  Float?
+  longitude Float?
+  sizeAcres Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  crops         Crop[]
+  sensorDevices SensorDevice[]
+}
+
+model Crop {
+  id        String   @id @default(cuid())
+  farmId    String
+  farm      Farm     @relation(fields: [farmId], references: [id])
+  cropType  String   // wheat, tomato, corn
+  plantedAt DateTime
+  status    String   @default("active") // active, harvested, failed
+  createdAt DateTime @default(now())
+}
+
+model SensorDevice {
+  id          String   @id @default(cuid())
+  farmId      String
+  farm        Farm     @relation(fields: [farmId], references: [id])
+  macAddress  String   @unique
+  deviceType  String   // ESP32_v1
+  vendor      String   @default("custom_esp32")
+  batteryLevel Int     @default(100)
+  status      String   @default("active") // active, offline, error
+  lastReadingAt DateTime?
+  createdAt   DateTime @default(now())
+
+  readings    SensorReading[]
+}
+
+model SensorReading {
+  id              String       @id @default(cuid())
+  sensorDeviceId  String
+  sensorDevice    SensorDevice @relation(fields: [sensorDeviceId], references: [id])
+  sensorType      String       // temperature, humidity, soil_moisture
+  value           Float
+  readingAt       DateTime     @default(now())
+  quality         Int          @default(100) // confidence 0-100
+  
+  @@index([sensorDeviceId, readingAt])
+}
+
+model Advisor {
+  id                  String   @id @default(cuid())
+  userId              String   @unique // Link to User table if advisor is also a user
+  name                String
+  phone               String   @unique
+  credentials         String
+  verificationLevel   String   @default("unverified") // unverified, basic, expert
+  paymentModel        String   @default("per_consultation")
+  shiftStart          String?  // e.g. "09:00"
+  shiftEnd            String?  // e.g. "17:00"
+  
+  // Liability tracking
+  recommendationsCount Int     @default(0)
+  failureRate         Float    @default(0.0)
+  insurance           Boolean  @default(false)
+  
+  adviceGiven         Advice[] @relation("AdvisorAdvice")
+}
+
+model Advice {
+  id                  String   @id @default(cuid())
+  advisorId           String
+  advisor             Advisor  @relation("AdvisorAdvice", fields: [advisorId], references: [id])
+  farmerId            String
+  farmer              User     @relation("FarmerAdvice", fields: [farmerId], references: [id])
+  cropId              String?
+  
+  recommendation      String
+  reasoningShown      Boolean  @default(false)
+  disclaimerAccepted  Boolean
+  timestamp           DateTime @default(now())
+  outcome             String   @default("unknown") // success, failure, unknown
+  
+  @@index([advisorId, timestamp])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  entityType  String
+  entityId    String
+  timestamp   DateTime @default(now())
+}
+
+model DiagnosisScan {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id])
+  imagePath            String   // URL or local path to uploaded image
+  cropType             String
+  diseaseName          String
+  confidenceScore      Float
+  severity             String   // Low, Medium, High
+  description          String
+  recommendedTreatment String
+  preventionTips       String
+  status               String   @default("Pending") // Pending, Resolved
+  createdAt            DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   // alert, info, warning
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

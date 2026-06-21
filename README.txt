@@ -1,8 +1,8 @@
-# 🌾 NeuralField (AgroTech Resilience)
+# 🌾 AgriVision (AgroTech Resilience)
 
 > **Cultivating Resilience through AI & Accessible Agronomy**
 
-NeuralField is a cutting-edge, AI-powered agricultural web application designed to empower modern farmers. It brings state-of-the-art agronomy directly to the farmer, featuring an intuitive, premium glassmorphism interface and native multi-lingual support, ensuring technology is accessible regardless of language barriers.
+AgriVision is a cutting-edge, AI-powered agricultural web application designed to empower modern farmers. It brings state-of-the-art agronomy directly to the farmer, featuring an intuitive, premium glassmorphism interface and native multi-lingual support, ensuring technology is accessible regardless of language barriers.
 
 ## 🚀 Key Features
 

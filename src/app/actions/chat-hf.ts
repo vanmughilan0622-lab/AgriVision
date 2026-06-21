@@ -32,7 +32,8 @@ function cleanMarkdown(text: string): string {
 export async function chatWithHuggingFace(
     history: { role: "user" | "assistant"; content: string }[],
     apiKey?: string,
-    language?: string
+    language?: string,
+    context?: string
 ) {
     try {
         // Hugging Face API key is optional - can use free inference API
@@ -43,7 +44,7 @@ export async function chatWithHuggingFace(
         }
 
         const langName = languageNames[language || "en"] || "English";
-        const systemPrompt = `You are a friendly and expert agricultural advisor helping Indian farmers. Provide concise, practical, conversational advice about crops, plant diseases, weather impact, yield optimization, soil, fertilizers, irrigation, and farming tips. Write in plain conversational sentences. Do NOT use any markdown formatting such as asterisks (**), hash symbols (#), bullet dashes (-), underscores, or backticks. Do NOT use bold or italic text. Use simple numbered lists only when listing steps. Keep answers helpful for small to medium scale farmers. Always respond only in ${langName}.`;
+        const systemPrompt = `You are a friendly and expert agricultural advisor helping Indian farmers. Provide concise, practical, conversational advice about crops, plant diseases, weather impact, yield optimization, soil, fertilizers, irrigation, and farming tips. Write in plain conversational sentences. Do NOT use any markdown formatting such as asterisks (**), hash symbols (#), bullet dashes (-), underscores, or backticks. Do NOT use bold or italic text. Use simple numbered lists only when listing steps. Keep answers helpful for small to medium scale farmers. Always respond only in ${langName}. ${context ? `\nContext regarding farmer's recent crop scan: ${context}` : ""}`;
 
         const langInstruction = language && language !== "en"
             ? ` (Please reply in ${langName} only)`

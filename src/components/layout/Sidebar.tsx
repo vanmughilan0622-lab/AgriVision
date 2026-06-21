@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/lib/language-context";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 
 const navItems = [
     { key: "nav.dashboard", href: "/", icon: LayoutDashboard },
@@ -28,7 +29,7 @@ const navItems = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
     const [showLangPicker, setShowLangPicker] = useState(false);
     const { lang, setLang, t, languages } = useLanguage();
 
@@ -54,20 +55,26 @@ export function Sidebar() {
                 )}
             >
                 {/* Header */}
-                <div className="h-20 flex items-center w-full shrink-0 border-b border-white/10 px-5 gap-3">
-                    <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-md transition-colors shrink-0">
-                        <Menu className="h-6 w-6" />
-                    </button>
-                    {isOpen && (
-                        <motion.div 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="flex items-center gap-2 overflow-hidden"
-                        >
-                            <Leaf className="h-8 w-8 text-emerald-400 shrink-0" />
-                            <span className="text-xl font-bold tracking-tight whitespace-nowrap">NeuralField</span>
-                        </motion.div>
-                    )}
+                <div className="h-20 flex items-center justify-between w-full shrink-0 border-b border-white/10 px-5 gap-3">
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-md transition-colors shrink-0">
+                            <Menu className="h-6 w-6" />
+                        </button>
+                        {isOpen && (
+                            <motion.div 
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="flex items-center gap-2 overflow-hidden"
+                            >
+                                <Leaf className="h-8 w-8 text-emerald-400 shrink-0" />
+                                <span className="text-xl font-bold tracking-tight whitespace-nowrap">AgriVision</span>
+                            </motion.div>
+                        )}
+                    </div>
+                    {/* Add Notification Bell here */}
+                    <div className="shrink-0 flex items-center">
+                        <NotificationBell />
+                    </div>
                 </div>
 
                 {/* Nav Links */}
@@ -170,7 +177,7 @@ export function Sidebar() {
                         <div className="p-6 flex items-center gap-2 justify-between border-b border-white/10">
                             <div className="flex items-center gap-2">
                                 <Leaf className="h-8 w-8 text-emerald-400" />
-                                <span className="text-xl font-bold">NeuralField</span>
+                                <span className="text-xl font-bold">AgriVision</span>
                             </div>
                             <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-md">
                                 <Menu className="h-5 w-5 text-slate-300" />
