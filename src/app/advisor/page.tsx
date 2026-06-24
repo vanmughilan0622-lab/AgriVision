@@ -2,18 +2,32 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, AlertCircle, Sparkles, Loader2, Globe } from "lucide-react";
+import { Send, User, Bot, AlertCircle, Sparkles, Loader2, Globe, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { chatWithHuggingFace } from "@/app/actions/chat-hf";
 import { getDiagnosisHistory } from "@/app/actions/history-actions";
 import { useLanguage } from "@/lib/language-context";
+import { VoiceRecorder } from "@/components/ui/VoiceRecorder";
+import { chatWithHuggingFace } from "@/app/actions/chat-hf";
 
 interface Message {
     role: "user" | "assistant";
     content: string;
 }
 
-
+function cleanMarkdown(text: string): string {
+    return text
+        .replace(/#{1,6}\s?/g, "")
+        .replace(/\*\*(.+?)\*\*/g, "$1")
+        .replace(/\*(.+?)\*/g, "$1")
+        .replace(/__(.+?)__/g, "$1")
+        .replace(/_(.+?)_/g, "$1")
+        .replace(/`{1,3}[^`]*`{1,3}/g, (m) => m.replace(/`/g, "").trim())
+        .replace(/^\s*[-*+]\s+/gm, "• ")
+        .replace(/^\s*\d+\.\s+/gm, (m) => m.trim() + " ")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+}
 
 const quickPrompts = [
     "Best fertilizer for wheat?",
@@ -24,7 +38,7 @@ const quickPrompts = [
 ];
 
 function renderMessageContent(content: string) {
-    const lines = content.split("\n");
+    const lines = content.trim().split("\n");
     return lines.map((line, i) => {
         if (/^\d+\.\s/.test(line)) {
             return (
@@ -56,7 +70,10 @@ export default function AdvisorPage() {
     const [language, setLanguage] = useState<string>(globalLang);
     const [error, setError] = useState<string | null>(null);
     const [scanContext, setScanContext] = useState<string>("");
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+    const playingIndexRef = useRef<number | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         async function fetchContext() {
@@ -76,12 +93,94 @@ export default function AdvisorPage() {
     }, [globalLang]);
 
     useEffect(() => {
-        if (messages.length > 0 || isLoading) {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: "smooth"
+            });
         }
     }, [messages, isLoading]);
 
-    const handleSubmit = async (e?: React.FormEvent, overrideInput?: string) => {
+    const toggleAudio = async (text: string, index: number) => {
+        try {
+            if (!audioRef.current) {
+                audioRef.current = new Audio();
+            }
+            const audio = audioRef.current;
+
+            if (playingIndexRef.current === index) {
+                audio.pause();
+                audio.removeAttribute('src');
+                setPlayingIndex(null);
+                playingIndexRef.current = null;
+                return;
+            }
+
+            audio.pause();
+            audio.removeAttribute('src');
+            
+            setPlayingIndex(index);
+            playingIndexRef.current = index;
+
+            const chunks = text.match(/[^.!?\n]+[.!?\n]*/g) || [text];
+            const smallChunks: string[] = [];
+            for (const chunk of chunks) {
+                if (chunk.length <= 150) {
+                    if (chunk.trim()) smallChunks.push(chunk.trim());
+                } else {
+                    const words = chunk.split(' ');
+                    let temp = "";
+                    for (const w of words) {
+                        if (temp.length + w.length > 150) {
+                            if (temp.trim()) smallChunks.push(temp.trim());
+                            temp = w + " ";
+                        } else {
+                            temp += w + " ";
+                        }
+                    }
+                    if (temp.trim()) smallChunks.push(temp.trim());
+                }
+            }
+
+            const targetLang = language || 'en';
+            const ttsLang = targetLang.split('-')[0];
+
+            const playNext = (chunkIndex: number) => {
+                if (playingIndexRef.current !== index || chunkIndex >= smallChunks.length) {
+                    setPlayingIndex(null);
+                    playingIndexRef.current = null;
+                    return;
+                }
+                
+                const url = `/api/tts?lang=${ttsLang}&text=${encodeURIComponent(smallChunks[chunkIndex])}`;
+                audio.src = url;
+                
+                audio.onended = () => playNext(chunkIndex + 1);
+                audio.onerror = (e) => {
+                    console.error("Audio Playback Error:", e);
+                    playNext(chunkIndex + 1);
+                };
+                
+                audio.play().catch(e => {
+                    if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
+                        console.error("Audio Play Error:", e);
+                        playNext(chunkIndex + 1);
+                    }
+                });
+            };
+            
+            playNext(0);
+
+        } catch (err) {
+            console.error('Failed to play audio', err);
+            if (playingIndexRef.current === index) {
+                setPlayingIndex(null);
+                playingIndexRef.current = null;
+            }
+        }
+    };
+
+    const handleSubmit = async (e?: React.FormEvent, overrideInput?: string, isVoiceInput = false) => {
         e?.preventDefault();
         const query = (overrideInput ?? input).trim();
         if (!query || isLoading) return;
@@ -106,7 +205,10 @@ export default function AdvisorPage() {
             if (response.error) {
                 setError(response.error);
             } else if (response.content) {
-                setMessages(prev => [...prev, { role: "assistant", content: response.content as string }]);
+                setMessages(prev => [...prev, { role: "assistant", content: cleanMarkdown(response.content as string) }]);
+                if (isVoiceInput) {
+                    toggleAudio(cleanMarkdown(response.content as string), newMessages.length);
+                }
             }
         } catch (err: any) {
             setError(err.message || "Failed to connect. Please try again.");
@@ -116,7 +218,7 @@ export default function AdvisorPage() {
     };
 
     return (
-        <div className="flex flex-col h-screen max-h-screen p-4 md:p-6 max-w-4xl mx-auto gap-4">
+        <div className="flex flex-col p-4 md:p-6 max-w-4xl mx-auto gap-4 h-[calc(100dvh-4rem)] md:h-[100dvh] w-full">
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
@@ -124,15 +226,15 @@ export default function AdvisorPage() {
                         <Bot className="h-6 w-6 text-emerald-600" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-slate-900 dark:text-white">AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">Advisor</span></h1>
-                        <p className="text-xs text-slate-400 font-medium">Agricultural intelligence at your fingertips</p>
+                        <h1 className="text-2xl font-black text-slate-900 dark:text-white">{t("advisor.ai")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">{t("advisor.advisor")}</span></h1>
+                        <p className="text-xs text-slate-400 font-medium">{t("advisor.subtitle")}</p>
                     </div>
                 </div>
             </div>
 
             {/* Chat Box */}
             <div className="flex-1 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-xl flex flex-col overflow-hidden min-h-0">
-                <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-5">
                     <AnimatePresence>
                         {messages.length === 0 && !isLoading && (
                             <motion.div
@@ -147,7 +249,7 @@ export default function AdvisorPage() {
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-black text-slate-700 dark:text-slate-300">{t("advisor.ready")}</h3>
-                                    <p className="text-slate-400 font-medium mt-1 text-sm">Ask about your crops, soil, pests, or market prices.</p>
+                                    <p className="text-slate-400 font-medium mt-1 text-sm">{t("advisor.askAbout")}</p>
                                 </div>
                             </motion.div>
                         )}
@@ -170,18 +272,35 @@ export default function AdvisorPage() {
                             </div>
 
                             {/* Bubble */}
-                            <div className={cn(
-                                "max-w-[80%] px-5 py-3.5 rounded-2xl text-sm font-medium leading-relaxed space-y-1.5",
-                                m.role === "user"
-                                    ? "bg-emerald-600 text-white rounded-tr-sm"
-                                    : "bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-100 dark:border-slate-700"
-                            )}>
-                                {renderMessageContent(m.content)}
+                            <div className={cn("flex flex-col", m.role === "user" ? "items-end max-w-[80%]" : "items-start max-w-[80%]")}>
+                                <div className={cn(
+                                    "px-5 py-3.5 rounded-2xl text-sm font-medium leading-relaxed",
+                                    m.role === "user"
+                                        ? "bg-emerald-600 text-white rounded-tr-sm space-y-1.5"
+                                        : "bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-100 dark:border-slate-700 space-y-1.5"
+                                )}>
+                                    {renderMessageContent(m.content)}
+                                    
+                                    {m.role === "assistant" && (
+                                        <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-700/60 flex justify-end">
+                                            <button 
+                                                onClick={() => toggleAudio(m.content, idx)}
+                                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] uppercase tracking-wider font-black text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
+                                            >
+                                                {playingIndex === idx ? (
+                                                    <><VolumeX className="w-3.5 h-3.5" /> {t("advisor.stopDictating")}</>
+                                                ) : (
+                                                    <><Volume2 className="w-3.5 h-3.5" /> {t("advisor.readAloud")}</>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </motion.div>
                     ))}
 
-                    {isLoading && (
+                    {isLoading && (messages.length === 0 || messages[messages.length - 1].role === "user" || messages[messages.length - 1].content === "") && (
                         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
                             <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
                                 <Loader2 className="h-4 w-4 text-emerald-500 animate-spin" />
@@ -200,16 +319,15 @@ export default function AdvisorPage() {
                             {error}
                         </motion.div>
                     )}
-                    <div ref={messagesEndRef} />
                 </div>
 
                 {/* Quick prompts */}
-                <div className="px-5 pb-3 flex gap-2 flex-wrap border-t border-slate-50 dark:border-slate-800 pt-3">
-                    {quickPrompts.map(p => (
+                <div className="px-5 pb-3 flex gap-2 flex-wrap justify-center border-t border-slate-50 dark:border-slate-800 pt-3">
+                    {[t("advisor.qp1"), t("advisor.qp2"), t("advisor.qp3"), t("advisor.qp4"), t("advisor.qp5")].map(p => (
                         <button
                             key={p}
                             onClick={() => handleSubmit(undefined, p)}
-                            className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-emerald-500 hover:text-white transition-all border border-transparent hover:border-emerald-400/30"
+                            className="text-[10px] font-semibold px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-emerald-500 hover:text-white transition-all border border-transparent hover:border-emerald-400/30"
                         >
                             {p}
                         </button>
@@ -219,6 +337,13 @@ export default function AdvisorPage() {
                 {/* Input */}
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800">
                     <form onSubmit={handleSubmit} className="flex gap-3 items-center">
+                        <VoiceRecorder 
+                            onTranscription={(text) => {
+                                setInput(text);
+                                handleSubmit(undefined, text, true);
+                            }} 
+                            isProcessing={isLoading} 
+                        />
                         <input
                             id="advisor-input"
                             value={input}
