@@ -72,7 +72,6 @@ export default function AdvisorPage() {
     const [scanContext, setScanContext] = useState<string>("");
     const [playingIndex, setPlayingIndex] = useState<number | null>(null);
     const playingIndexRef = useRef<number | null>(null);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -84,6 +83,12 @@ export default function AdvisorPage() {
             }
         }
         fetchContext();
+
+        return () => {
+            if (typeof window !== "undefined" && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -103,32 +108,88 @@ export default function AdvisorPage() {
 
     const toggleAudio = async (text: string, index: number) => {
         try {
-            if (!audioRef.current) {
-                audioRef.current = new Audio();
+            if (typeof window === "undefined" || !window.speechSynthesis) {
+                console.error("Speech synthesis not supported in this browser.");
+                return;
             }
-            const audio = audioRef.current;
+
+            const synth = window.speechSynthesis;
 
             if (playingIndexRef.current === index) {
-                audio.pause();
-                audio.removeAttribute('src');
+                synth.cancel();
                 setPlayingIndex(null);
                 playingIndexRef.current = null;
                 return;
             }
 
-            audio.pause();
-            audio.removeAttribute('src');
-            
+            synth.cancel(); // Stop any currently playing speech
+
             setPlayingIndex(index);
             playingIndexRef.current = index;
 
-            const chunks = text.match(/[^.!?\n]+[.!?\n]*/g) || [text];
+            const targetLang = language || 'en';
+            const ttsLang = targetLang.split('-')[0];
+
+            const ttsLangMap: Record<string, string> = {
+                en: 'en-IN',
+                hi: 'hi-IN',
+                ta: 'ta-IN',
+                te: 'te-IN',
+                kn: 'kn-IN',
+                mr: 'mr-IN',
+                pa: 'pa-IN',
+                gu: 'gu-IN',
+            };
+            const speechLang = ttsLangMap[ttsLang] || 'en-IN';
+
+            // Helper: resolve voices, waiting for voiceschanged if the list is empty
+            // Queue a silent dummy utterance synchronously to keep the user gesture alive!
+            const dummy = new SpeechSynthesisUtterance('');
+            dummy.volume = 0;
+            synth.speak(dummy);
+
+            // Helper: resolve voices, waiting for voiceschanged if the list is empty
+            // (browsers like Chrome load voices asynchronously on first call).
+            const resolveVoice = (): Promise<SpeechSynthesisVoice | undefined> => {
+                return new Promise((resolve) => {
+                    const pick = () => {
+                        const all = synth.getVoices();
+                        const match = all.find(
+                            v => v.lang === speechLang ||
+                                 v.lang.replace('_', '-') === speechLang ||
+                                 v.lang.startsWith(speechLang.split('-')[0])
+                        );
+                        resolve(match);
+                    };
+                    const voices = synth.getVoices();
+                    if (voices.length > 0) {
+                        pick();
+                    } else {
+                        // Voices not loaded yet — wait for the event (with a 2s timeout)
+                        const timeout = setTimeout(() => {
+                            synth.removeEventListener('voiceschanged', onVoicesChanged);
+                            pick();
+                        }, 2000);
+                        const onVoicesChanged = () => {
+                            clearTimeout(timeout);
+                            synth.removeEventListener('voiceschanged', onVoicesChanged);
+                            pick();
+                        };
+                        synth.addEventListener('voiceschanged', onVoicesChanged);
+                    }
+                });
+            };
+
+            // Split text into sentences for natural pauses and to stay within engine limits
+            const rawChunks = text.match(/[^.!?\n।]+[.!?\n।]*/g) || [text];
             const smallChunks: string[] = [];
-            for (const chunk of chunks) {
-                if (chunk.length <= 150) {
-                    if (chunk.trim()) smallChunks.push(chunk.trim());
+            for (const chunk of rawChunks) {
+                const trimmed = chunk.trim();
+                if (!trimmed) continue;
+                if (trimmed.length <= 150) {
+                    smallChunks.push(trimmed);
                 } else {
-                    const words = chunk.split(' ');
+                    const words = trimmed.split(' ');
                     let temp = "";
                     for (const w of words) {
                         if (temp.length + w.length > 150) {
@@ -142,34 +203,40 @@ export default function AdvisorPage() {
                 }
             }
 
-            const targetLang = language || 'en';
-            const ttsLang = targetLang.split('-')[0];
+            if (smallChunks.length === 0) {
+                setPlayingIndex(null);
+                playingIndexRef.current = null;
+                return;
+            }
 
-            const playNext = (chunkIndex: number) => {
-                if (playingIndexRef.current !== index || chunkIndex >= smallChunks.length) {
-                    setPlayingIndex(null);
-                    playingIndexRef.current = null;
-                    return;
+            // Resolve voice once, then queue all utterances
+            const bestVoice = await resolveVoice();
+
+            smallChunks.forEach((chunk, chunkIdx) => {
+                const utterance = new SpeechSynthesisUtterance(chunk);
+                utterance.lang = speechLang;
+                if (bestVoice) utterance.voice = bestVoice;
+
+                // Clean state on completion of the last chunk
+                if (chunkIdx === smallChunks.length - 1) {
+                    utterance.onend = () => {
+                        if (playingIndexRef.current === index) {
+                            setPlayingIndex(null);
+                            playingIndexRef.current = null;
+                        }
+                    };
                 }
-                
-                const url = `/api/tts?lang=${ttsLang}&text=${encodeURIComponent(smallChunks[chunkIndex])}`;
-                audio.src = url;
-                
-                audio.onended = () => playNext(chunkIndex + 1);
-                audio.onerror = (e) => {
-                    console.error("Audio Playback Error:", e);
-                    playNext(chunkIndex + 1);
-                };
-                
-                audio.play().catch(e => {
-                    if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
-                        console.error("Audio Play Error:", e);
-                        playNext(chunkIndex + 1);
+
+                utterance.onerror = (e) => {
+                    console.error("SpeechSynthesis Utterance Error details:", e.error, e);
+                    if (playingIndexRef.current === index) {
+                        setPlayingIndex(null);
+                        playingIndexRef.current = null;
                     }
-                });
-            };
-            
-            playNext(0);
+                };
+
+                synth.speak(utterance);
+            });
 
         } catch (err) {
             console.error('Failed to play audio', err);
