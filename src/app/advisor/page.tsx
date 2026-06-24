@@ -142,10 +142,12 @@ export default function AdvisorPage() {
             };
             const speechLang = ttsLangMap[ttsLang] || 'en-IN';
 
-            // Helper: resolve voices, waiting for voiceschanged if the list is empty
             // Queue a silent dummy utterance synchronously to keep the user gesture alive!
+            // Store it globally to prevent garbage collection
+            (window as any).speechUtterances = (window as any).speechUtterances || [];
             const dummy = new SpeechSynthesisUtterance('');
             dummy.volume = 0;
+            (window as any).speechUtterances.push(dummy);
             synth.speak(dummy);
 
             // Helper: resolve voices, waiting for voiceschanged if the list is empty
@@ -212,8 +214,16 @@ export default function AdvisorPage() {
             // Resolve voice once, then queue all utterances
             const bestVoice = await resolveVoice();
 
+            // Store utterances globally to prevent garbage collection (a known Chrome bug)
+            (window as any).speechUtterances = (window as any).speechUtterances || [];
+            
+            // It's safe to clear previous utterances here because we already called synth.cancel() above
+            (window as any).speechUtterances.length = 0;
+
             smallChunks.forEach((chunk, chunkIdx) => {
                 const utterance = new SpeechSynthesisUtterance(chunk);
+                (window as any).speechUtterances.push(utterance);
+                
                 utterance.lang = speechLang;
                 if (bestVoice) utterance.voice = bestVoice;
 
