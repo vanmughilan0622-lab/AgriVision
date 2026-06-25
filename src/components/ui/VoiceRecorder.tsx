@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, Square, Loader2, AlertCircle } from 'lucide-react';
+import { Mic, Square, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
@@ -27,16 +27,11 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
   const [error, setError] = useState('');
   const recognitionRef = useRef<any>(null);
 
-  // Keep a stable ref to the callback so we never need to tear down the
-  // recognition instance just because the parent re-rendered.
   const onTranscriptionRef = useRef(onTranscription);
   useEffect(() => {
     onTranscriptionRef.current = onTranscription;
   }, [onTranscription]);
 
-  // Try to create the SpeechRecognition instance once on mount.
-  // If the API isn't available, we set an error but do NOT block the button
-  // with a spinner.
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -112,9 +107,7 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
           />
         )}
 
-        {isProcessing ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
-        ) : error ? (
+        {error ? (
           <AlertCircle className="w-5 h-5" />
         ) : isRecording ? (
           <Square className="w-5 h-5 fill-current" />
