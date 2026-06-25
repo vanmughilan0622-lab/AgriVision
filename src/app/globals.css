@@ -89,3 +89,16 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+@utility pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 2rem); /* Increased to 2rem/32px to guarantee clearance */
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@utility h-safe-header {
+  height: calc(4rem + max(env(safe-area-inset-top, 0px), 2rem));
+}
+@utility pt-safe-main {
+  padding-top: calc(4rem + max(env(safe-area-inset-top, 0px), 2rem));
+}
