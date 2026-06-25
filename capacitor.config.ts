@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.agrotech.resilience',
-  appName: 'Agrotech Resilience',
+  appName: 'AgriVision',
   webDir: 'public',
   backgroundColor: '#020817',
   server: {
@@ -11,7 +11,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     StatusBar: {
-      overlaysWebView: true,
+      overlaysWebView: false,
+      backgroundColor: '#020617',
       style: 'DARK'
     }
   }

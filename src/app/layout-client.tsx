@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Bot } from "lucide-react";
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 
 import { BackgroundManager } from "@/components/ui/BackgroundManager";
 import { InteractiveEffects } from "@/components/ui/InteractiveEffects";
@@ -13,6 +15,22 @@ import { InteractiveEffects } from "@/components/ui/InteractiveEffects";
 export default function RootLayoutClient({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const childrenArray = React.Children.toArray(children);
+
+    useEffect(() => {
+        const initStatusBar = async () => {
+            if (Capacitor.isNativePlatform()) {
+                try {
+                    // Match the header's dark slate-950 color exactly
+                    await StatusBar.setOverlaysWebView({ overlay: false });
+                    await StatusBar.setBackgroundColor({ color: '#020617' }); 
+                    await StatusBar.setStyle({ style: Style.Dark }); // Light icons
+                } catch (e) {
+                    console.error('StatusBar setup failed:', e);
+                }
+            }
+        };
+        initStatusBar();
+    }, []);
 
     return (
         <div className="relative w-full max-w-full flex min-h-[100dvh] overflow-x-hidden">
