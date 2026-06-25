@@ -34,9 +34,9 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
     onTranscriptionRef.current = onTranscription;
   }, [onTranscription]);
 
-  const [isReady, setIsReady] = useState(false);
-
-  // Create the SpeechRecognition instance exactly once.
+  // Try to create the SpeechRecognition instance once on mount.
+  // If the API isn't available, we set an error but do NOT block the button
+  // with a spinner.
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -60,7 +60,7 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
     };
 
     recognition.onerror = (event: any) => {
-      if (event.error === 'aborted') return; // Expected when user manually stops
+      if (event.error === 'aborted') return;
       console.error('Speech recognition error', event.error);
       setError(event.error === 'not-allowed' ? 'Mic access denied' : 'Recognition failed');
       setIsRecording(false);
@@ -71,24 +71,25 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
     };
 
     recognitionRef.current = recognition;
-    setIsReady(true);
 
     return () => {
       recognition.abort();
     };
-  }, []); // Empty deps — only run once on mount
+  }, []);
 
   const toggleRecording = useCallback(() => {
+    if (!recognitionRef.current) {
+      setError('Speech API not supported');
+      return;
+    }
     if (isRecording) {
-      recognitionRef.current?.stop();
+      recognitionRef.current.stop();
     } else {
-      if (!recognitionRef.current) return;
+      setError('');
       recognitionRef.current.lang = langMap[lang] || 'en-IN';
       recognitionRef.current.start();
     }
   }, [isRecording, lang]);
-
-  const disabled = isProcessing || !isReady;
 
   return (
     <div className="flex items-center justify-center relative group">
@@ -96,11 +97,11 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
         type="button"
         whileTap={{ scale: 0.95 }}
         onClick={toggleRecording}
-        disabled={disabled}
+        disabled={isProcessing}
         title={error || "Record voice"}
         className={`relative flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-colors
           ${error ? 'bg-rose-500 text-white hover:bg-rose-600' : isRecording ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-emerald-500 text-white hover:bg-emerald-600'}
-          ${disabled && !error ? 'opacity-50 cursor-not-allowed' : ''}
+          ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
         {isRecording && (
@@ -111,7 +112,7 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
           />
         )}
 
-        {disabled && !error ? (
+        {isProcessing ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : error ? (
           <AlertCircle className="w-5 h-5" />
@@ -124,3 +125,4 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
     </div>
   );
 }
+
