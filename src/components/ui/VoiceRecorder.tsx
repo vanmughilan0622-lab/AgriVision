@@ -34,6 +34,8 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
     onTranscriptionRef.current = onTranscription;
   }, [onTranscription]);
 
+  const [isReady, setIsReady] = useState(false);
+
   // Create the SpeechRecognition instance exactly once.
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -69,6 +71,7 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
     };
 
     recognitionRef.current = recognition;
+    setIsReady(true);
 
     return () => {
       recognition.abort();
@@ -85,7 +88,7 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
     }
   }, [isRecording, lang]);
 
-  const disabled = isProcessing || !recognitionRef.current;
+  const disabled = isProcessing || !isReady;
 
   return (
     <div className="flex items-center justify-center relative group">

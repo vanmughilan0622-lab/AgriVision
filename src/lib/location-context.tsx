@@ -34,6 +34,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const saved = localStorage.getItem("farmer_location");
         if (saved) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             try { setLocationState(JSON.parse(saved)); } catch { }
         }
     }, []);

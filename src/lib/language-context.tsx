@@ -24,6 +24,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const saved = localStorage.getItem("preferred_language") as LangCode | null;
         if (saved && LANGUAGES.some((l) => l.code === saved)) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLangState(saved);
         }
     }, []);
