@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -14,19 +14,31 @@ export const metadata: Metadata = {
   description: "Advanced agricultural management for modern farmers.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "white" },
+    { media: "(prefers-color-scheme: dark)", color: "black" },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={cn(inter.className, "bg-background text-foreground antialiased selection:bg-emerald-500/30 min-h-screen flex")}>
+    <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+      <body className={cn(inter.className, "bg-background text-foreground antialiased selection:bg-emerald-500/30 min-h-screen flex overflow-x-hidden w-screen")}>
         <LanguageProvider>
           <LocationProvider>
             <RootLayoutClient>
               <Sidebar />
-              <main className="flex-1 relative min-h-screen overflow-x-hidden pb-48">
+              <main className="flex-1 relative overflow-x-hidden overflow-y-auto">
                 {children}
               </main>
 

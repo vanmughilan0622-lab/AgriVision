@@ -21,11 +21,17 @@ import {
   QrCode,
   CloudRain,
   Download,
-  Map
+  Map,
+  History,
+  Menu,
+  Sun,
+  CloudFog,
+  CloudLightning
 } from "lucide-react";
+import { getWeather, getCoordinates } from "@/app/actions/weather-actions";
+import { getWeatherCondition, cn } from "@/lib/utils";
 import { FarmHeatmap } from "@/components/ui/farm-heatmap";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { useLocation } from "@/lib/location-context";
 import type { FarmerLocation } from "@/lib/location-context";
 import { useLanguage } from "@/lib/language-context";
@@ -53,12 +59,12 @@ const indiaStatesDistricts: Record<string, string[]> = {
   "West Bengal": ["Kolkata", "Howrah", "Asansol", "Siliguri", "Bardhaman", "Malda", "Murshidabad"],
 };
 
-// Mock Data
-const weatherData = [
-  { label: "Temperature", value: "24°C", icon: Thermometer, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { label: "Humidity", value: "65%", icon: Droplets, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { label: "Wind Speed", value: "12 km/h", icon: Wind, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { label: "Condition", value: "Partly Cloudy", icon: CloudSun, color: "text-sky-500", bg: "bg-sky-500/10" },
+// Default Data
+const defaultWeatherData = [
+  { label: "dash.tempLabel", value: "--", icon: Thermometer, color: "text-amber-500", bg: "bg-amber-500/10" },
+  { label: "dash.humLabel", value: "--", icon: Droplets, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { label: "dash.windLabel", value: "--", icon: Wind, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  { label: "dash.condLabel", value: "--", icon: CloudSun, color: "text-slate-400", bg: "bg-slate-500/10" },
 ];
 
 const cropStatus = [
@@ -114,6 +120,7 @@ const itemVariants: any = {
 };
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useLanguage();
   const styles: Record<string, string> = {
     Good: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
     Attention: "bg-amber-500/10 text-amber-600 border-amber-500/20",
@@ -123,7 +130,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border", styles[status] || "bg-slate-100")}>
-      {status}
+      {t(`status.${status}`) || status}
     </span>
   );
 }
@@ -145,6 +152,48 @@ export default function Dashboard() {
   const [showWeatherOverrideModal, setShowWeatherOverrideModal] = useState(false);
   const [showGatePassModal, setShowGatePassModal] = useState(false);
   const [gatePassCrop, setGatePassCrop] = useState<any>(null);
+  const [weatherData, setWeatherData] = useState(defaultWeatherData);
+
+  useEffect(() => {
+    async function fetchW() {
+      if (location.source !== "none") {
+        let lat = location.lat;
+        let lon = location.lon;
+
+        if (!lat || !lon) {
+          const geoRes = await getCoordinates(location.city);
+          if (geoRes.success) {
+            lat = geoRes.lat;
+            lon = geoRes.lon;
+          }
+        }
+
+        if (lat && lon) {
+          const res = await getWeather(lat, lon);
+          if (res.success) {
+            const c = res.data.current;
+            const cond = getWeatherCondition(c.weather_code);
+            
+            let IconComponent = CloudSun;
+            if (cond.iconType === "Sun") IconComponent = Sun;
+            if (cond.iconType === "CloudFog") IconComponent = CloudFog;
+            if (cond.iconType === "CloudRain") IconComponent = CloudRain;
+            if (cond.iconType === "CloudLightning") IconComponent = CloudLightning;
+
+            setWeatherData([
+              { label: "dash.tempLabel", value: `${Math.round(c.temperature_2m)}°C`, icon: Thermometer, color: "text-amber-500", bg: "bg-amber-500/10" },
+              { label: "dash.humLabel", value: `${Math.round(c.relative_humidity_2m)}%`, icon: Droplets, color: "text-blue-500", bg: "bg-blue-500/10" },
+              { label: "dash.windLabel", value: `${Math.round(c.wind_speed_10m)} km/h`, icon: Wind, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+              { label: "dash.condLabel", value: cond.label, icon: IconComponent, color: cond.color, bg: "bg-slate-500/10" },
+            ]);
+          }
+        }
+      } else {
+        setWeatherData(defaultWeatherData);
+      }
+    }
+    fetchW();
+  }, [location]);
 
   const districts = locState ? (indiaStatesDistricts[locState] || []) : [];
 
@@ -222,22 +271,24 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Location Widget */}
-          <div className="flex items-center gap-3 shrink-0">
-            {/* Filter Widget */}
-            <div className="relative shrink-0" ref={filterRef} onClick={e => e.stopPropagation()}>
+        {/* Location Widget */}
+        <div className="relative shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative w-full sm:w-auto" ref={filterRef}>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 onClick={() => { setShowFilterPicker(!showFilterPicker); setShowLocPicker(false); }}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all shadow-sm",
-                  filterMode !== "All Sectors"
-                    ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
-                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-500/30"
+                  "flex items-center justify-between sm:justify-start gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all shadow-sm w-full",
+                  filterMode !== "All Sectors" 
+                    ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-700 dark:text-indigo-400" 
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
                 )}
               >
-                <Filter className="h-4 w-4 shrink-0" />
-                <span className="max-w-[150px] truncate">{filterMode}</span>
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 shrink-0" />
+                  <span className="max-w-[150px] truncate">{filterMode}</span>
+                </div>
                 <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
               </motion.button>
               <AnimatePresence>
@@ -246,10 +297,10 @@ export default function Dashboard() {
                     initial={{ opacity: 0, y: 8, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                    className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] shadow-2xl z-50 p-3 space-y-1"
+                    className="absolute left-0 right-0 sm:right-auto top-full mt-2 sm:w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] shadow-2xl z-50 p-3 space-y-1"
                   >
                     <div className="px-3 py-2 flex items-center justify-between mb-2">
-                      <p className="font-black text-slate-900 dark:text-white text-xs uppercase tracking-wider">Filter By</p>
+                      <p className="font-black text-slate-900 dark:text-white text-xs uppercase tracking-wider">{t("dash.filterBy")}</p>
                     </div>
                     {filterOptions.map(opt => (
                       <button
@@ -262,7 +313,7 @@ export default function Dashboard() {
                             : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                         )}
                       >
-                        {opt}
+                        {opt === "All Sectors" ? t("dash.allSectors") : opt === "Critical Status" ? t("dash.criticalStatus") : opt === "Attention Status" ? t("dash.attentionStatus") : opt}
                       </button>
                     ))}
                   </motion.div>
@@ -270,20 +321,22 @@ export default function Dashboard() {
               </AnimatePresence>
             </div>
 
-            <div className="relative shrink-0" ref={pickerRef} onClick={e => e.stopPropagation()}>
+            <div className="relative w-full sm:w-auto" ref={pickerRef} onClick={e => e.stopPropagation()}>
             <motion.button
               id="location-widget"
               whileHover={{ scale: 1.02 }}
               onClick={() => { setShowLocPicker(!showLocPicker); setShowFilterPicker(false); }}
               className={cn(
-                "flex items-center gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all shadow-sm",
+                "flex items-center justify-between sm:justify-start gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all shadow-sm w-full",
                 location.source !== "none"
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
                   : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
               )}
             >
-              <MapPin className="h-4 w-4 shrink-0" />
-              <span className="max-w-[200px] truncate">{location.source !== "none" ? location.label : t("dash.setLocation")}</span>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span className="max-w-[200px] truncate">{location.source !== "none" ? location.label : t("dash.setLocation")}</span>
+              </div>
               <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
             </motion.button>
 
@@ -293,7 +346,7 @@ export default function Dashboard() {
                   initial={{ opacity: 0, y: 8, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                  className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] shadow-2xl z-50 p-5 space-y-4"
+                  className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] shadow-2xl z-50 p-5 space-y-4"
                 >
                   <div className="flex items-center justify-between">
                     <p className="font-black text-slate-900 dark:text-white text-sm">{t("dash.setLocation")}</p>
@@ -355,9 +408,10 @@ export default function Dashboard() {
                 </motion.div>
               )}
             </AnimatePresence>
-            </div>
+          </div>
           </div>
         </div>
+      </div>
       </motion.div>
 
       {/* Weather Section - Premium Tiles */}
@@ -370,7 +424,7 @@ export default function Dashboard() {
             className="group relative p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] transition-all duration-500"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{item.label}</span>
+              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{item.label.startsWith("dash.") ? t(item.label) : item.label}</span>
               <div className={cn("p-2.5 rounded-2xl transition-colors duration-500 group-hover:bg-opacity-20", item.bg)}>
                 <item.icon className={cn("h-5 w-5", item.color)} />
               </div>
@@ -385,7 +439,7 @@ export default function Dashboard() {
                 )}
               </div>
               {location.source === "none" && (
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Awaiting Location</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t("dash.awaitingLoc")}</p>
               )}
             </div>
           </motion.div>
@@ -394,11 +448,11 @@ export default function Dashboard() {
 
       {/* Main Insights Grid */}
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-7">
-        <motion.div variants={itemVariants} className="col-span-full lg:col-span-4 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+        <motion.div variants={itemVariants} className="col-span-full lg:col-span-4 order-1 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
           <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">Active Cultivations</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Real-time biometrics from the field.</p>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">{t("dash.activeCultivations")}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t("dash.realtimeBiometrics")}</p>
             </div>
             <div className="p-3 bg-emerald-500/10 rounded-2xl">
               <Sprout className="h-6 w-6 text-emerald-600" />
@@ -412,13 +466,13 @@ export default function Dashboard() {
                 </div>
                 <h4 className="text-lg font-black text-slate-900 dark:text-white mb-2">
                   {(filterMode === "Critical Status" || filterMode === "Attention Status") 
-                    ? "All clear!" 
-                    : "No matches found"}
+                    ? t("dash.allClear") 
+                    : t("dash.noMatches")}
                 </h4>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-sm">
                   {(filterMode === "Critical Status" || filterMode === "Attention Status") 
-                    ? `No cultivations currently have a ${filterMode.split(' ')[0].toLowerCase()} status. Great job!` 
-                    : "Try selecting a different sector or filter mode to see active data."}
+                    ? t("dash.allClearDesc").replace("{status}", filterMode.split(' ')[0].toLowerCase()) 
+                    : t("dash.noMatchesDesc")}
                 </p>
               </div>
             ) : filteredCrops.map((crop) => (
@@ -440,17 +494,17 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-lg font-black text-slate-900 dark:text-white">
-                      {crop.name} <span className="text-sm text-slate-500 font-medium">({crop.sector})</span>
+                      {t(`crop.${crop.name}`)} <span className="text-sm text-slate-500 font-medium">({t(`sector.${crop.sector}`)})</span>
                     </p>
                     <div className="flex gap-3 mt-1">
-                      <p className="text-xs text-slate-500 dark:text-slate-500 font-bold uppercase tracking-tighter">Stage: {crop.growthStage}</p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold uppercase tracking-tighter">Market: {crop.marketPrice}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 font-bold uppercase tracking-tighter">{t("dash.stage")}: {t(`stage.${crop.growthStage}`)}</p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold uppercase tracking-tighter">{t("dash.market")}: {crop.marketPrice}</p>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-8 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
                   <div className="text-right">
-                    <p className="text-sm font-black text-slate-900 dark:text-white">{crop.health}% Health</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white">{crop.health}% {t("dash.healthPct")}</p>
                     <div className="w-28 h-2 bg-slate-200 dark:bg-slate-800 rounded-full mt-2 overflow-hidden shadow-inner">
                       <motion.div
                         initial={{ width: 0 }}
@@ -473,7 +527,7 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Spatial & Intelligence Column */}
-        <div className="col-span-full lg:col-span-3 space-y-8">
+        <div className="col-span-full lg:col-span-3 space-y-8 order-2">
           <motion.div variants={itemVariants}>
             <FarmHeatmap cropStatus={cropStatus} activeFilter={filterMode} onSectorClick={setFilterMode} />
           </motion.div>
@@ -481,8 +535,8 @@ export default function Dashboard() {
           <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
           <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">Critical Alerts</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Dynamic response requirements.</p>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">{t("dash.criticalAlerts")}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t("dash.dynamicResponse")}</p>
             </div>
             <div className="p-3 bg-rose-500/10 rounded-2xl">
               <AlertTriangle className="h-6 w-6 text-rose-500" />
@@ -532,6 +586,7 @@ export default function Dashboard() {
             ))}
           </div>
           </motion.div>
+
         </div>
       </div>
 
@@ -664,8 +719,13 @@ export default function Dashboard() {
                     <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">e-NAM Gate Pass</h3>
                     <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Lot ID: #WHT-0824-X</p>
                   </div>
-                  <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <button onClick={() => setShowGatePassModal(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                      <X className="h-5 w-5 text-slate-500" />
+                    </button>
                   </div>
                 </div>
 
@@ -710,6 +770,7 @@ export default function Dashboard() {
           </div>
         )}
       </AnimatePresence>
+
     </motion.div>
   );
 }

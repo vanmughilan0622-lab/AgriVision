@@ -75,22 +75,25 @@ export default function HistoryPage() {
       ) : (
         <div className="grid gap-4">
           {filteredHistory.map((scan) => (
-            <div key={scan.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-full sm:w-24 h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700">
-                {/* Fallback image if real image not available */}
-                <div className="w-full h-full flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500">
-                  <History className="w-8 h-8" />
-                </div>
+            <div key={scan.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-6 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+              <div className="w-full sm:w-24 h-32 sm:h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700 relative">
+                {scan.imagePath && scan.imagePath !== "/placeholder-plant.jpg" ? (
+                  <img src={scan.imagePath} alt={scan.diseaseName} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500">
+                    <History className="w-8 h-8" />
+                  </div>
+                )}
               </div>
               
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <div>
+              <div className="flex-1 w-full min-w-0">
+                <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 mb-2">
+                  <div className="min-w-0 flex-1">
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white truncate capitalize">{scan.diseaseName}</h3>
-                    <p className="text-sm text-slate-500 flex items-center gap-2">
-                      <span>{scan.cropType}</span>
-                      <span>•</span>
-                      <span>{format(new Date(scan.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
+                    <p className="text-sm text-slate-500 flex flex-wrap items-center gap-1.5 mt-1">
+                      <span className="truncate max-w-[120px] sm:max-w-none">{scan.cropType}</span>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <span className="whitespace-nowrap">{format(new Date(scan.createdAt), "MMM d, yy 'at' h:mm a")}</span>
                     </p>
                   </div>
                   <div className={cn(

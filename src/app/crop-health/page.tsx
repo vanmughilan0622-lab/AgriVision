@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sprout, AlertTriangle, Droplets, Calendar, Thermometer, ShieldCheck, X, ChevronDown, ChevronUp, Bug, Zap, Info } from "lucide-react";
+import { Sprout, AlertTriangle, Droplets, Calendar, Thermometer, ShieldCheck, X, ChevronDown, ChevronUp, Bug, Zap, Info, Layers } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
@@ -48,6 +48,24 @@ const anomalyDetails: Record<string, { title: string; desc: string; action: stri
     ]
 };
 
+const SUGGESTED_CROPS = [
+    { name: "Wheat (Winter Variety)", yieldPerAcre: 1.5 },
+    { name: "Corn (Sweet)", yieldPerAcre: 3.5 },
+    { name: "Tomato (Roma)", yieldPerAcre: 15 },
+    { name: "Rice (Basmati)", yieldPerAcre: 2.0 },
+    { name: "Potato (Russet)", yieldPerAcre: 12 },
+    { name: "Grapes (Vitis)", yieldPerAcre: 6 },
+    { name: "Soybeans", yieldPerAcre: 1.2 },
+    { name: "Cotton", yieldPerAcre: 0.8 },
+    { name: "Sugarcane", yieldPerAcre: 35 },
+    { name: "Mango (Alphonso)", yieldPerAcre: 4 },
+    { name: "Onion", yieldPerAcre: 8 },
+    { name: "Chili (Green)", yieldPerAcre: 3 },
+    { name: "Banana", yieldPerAcre: 20 },
+    { name: "Chickpea", yieldPerAcre: 0.5 },
+    { name: "Groundnut", yieldPerAcre: 1 },
+];
+
 export default function CropHealthPage() {
     const { t } = useLanguage();
     const [cropsList, setCropsList] = useState([
@@ -60,6 +78,8 @@ export default function CropHealthPage() {
             moisture: "Adequate",
             temp: "18°C",
             alerts: 0,
+            area: 120,
+            estYield: "180 Tons",
             image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&q=80&w=800&h=600"
         },
         {
@@ -71,6 +91,8 @@ export default function CropHealthPage() {
             moisture: "Low",
             temp: "22°C",
             alerts: 1,
+            area: 85,
+            estYield: "297.5 Tons",
             image: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&q=80&w=800&h=600"
         },
         {
@@ -82,6 +104,8 @@ export default function CropHealthPage() {
             moisture: "High",
             temp: "24°C",
             alerts: 2,
+            area: 15,
+            estYield: "225 Tons",
             image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=800&h=600"
         },
         {
@@ -93,6 +117,8 @@ export default function CropHealthPage() {
             moisture: "High",
             temp: "26°C",
             alerts: 0,
+            area: 200,
+            estYield: "400 Tons",
             image: "https://images.unsplash.com/photo-1536633100611-306725359149?auto=format&fit=crop&q=80&w=800&h=600"
         },
         {
@@ -104,6 +130,8 @@ export default function CropHealthPage() {
             moisture: "Adequate",
             temp: "16°C",
             alerts: 0,
+            area: 40,
+            estYield: "480 Tons",
             image: "https://images.unsplash.com/photo-1518977676601-b53f02ac10dd?auto=format&fit=crop&q=80&w=800&h=600"
         },
         {
@@ -115,18 +143,31 @@ export default function CropHealthPage() {
             moisture: "Low",
             temp: "12°C",
             alerts: 0,
+            area: 25,
+            estYield: "150 Tons",
             image: "https://images.unsplash.com/photo-1537613531460-e85d9539266a?auto=format&fit=crop&q=80&w=800&h=600"
         }
     ]);
 
     const [isAdding, setIsAdding] = useState(false);
     const [newCropName, setNewCropName] = useState("");
+    const [landArea, setLandArea] = useState("");
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [selectedCrop, setSelectedCrop] = useState<typeof cropsList[0] | null>(null);
     const [expandedAnomalyId, setExpandedAnomalyId] = useState<number | null>(null);
 
+    const filteredSuggestions = SUGGESTED_CROPS.filter(c => 
+        c.name.toLowerCase().includes(newCropName.toLowerCase())
+    );
+
     const handleAddCrop = (e?: React.FormEvent) => {
         e?.preventDefault();
-        if (!newCropName.trim()) return;
+        if (!newCropName.trim() || !landArea.trim()) return;
+
+        const areaVal = parseFloat(landArea) || 0;
+        const matchedCrop = SUGGESTED_CROPS.find(c => c.name.toLowerCase() === newCropName.toLowerCase());
+        const yieldFactor = matchedCrop ? matchedCrop.yieldPerAcre : 2.0; // default 2.0 tons/acre if unknown
+        const estYield = areaVal * yieldFactor;
 
         const newCrop = {
             id: Date.now(),
@@ -137,12 +178,16 @@ export default function CropHealthPage() {
             moisture: "Adequate",
             temp: "20°C",
             alerts: 0,
+            area: areaVal,
+            estYield: `${estYield.toFixed(1)} Tons`,
             image: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&q=80&w=800&h=600"
         };
 
         setCropsList([newCrop, ...cropsList]);
         setNewCropName("");
+        setLandArea("");
         setIsAdding(false);
+        setShowSuggestions(false);
     };
 
     return (
@@ -172,43 +217,93 @@ export default function CropHealthPage() {
                             {t("health.addCrop")}
                         </motion.button>
                     ) : (
-                        <motion.form
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            onSubmit={handleAddCrop}
-                            className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-xl"
-                        >
-                            <input
-                                value={newCropName}
-                                onChange={(e) => setNewCropName(e.target.value)}
-                                placeholder="Enter crop name..."
-                                autoFocus
-                                className="bg-transparent border-none outline-none px-4 py-2 font-bold text-slate-900 dark:text-white min-w-[200px]"
-                            />
-                            <button
-                                type="submit"
-                                className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all"
+                        <div className="relative">
+                            <motion.form
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                onSubmit={handleAddCrop}
+                                className="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-xl relative z-40"
                             >
-                                Confirm
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsAdding(false)}
-                                className="px-6 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-                            >
-                                Cancel
-                            </button>
-                        </motion.form>
+                                <div className="relative w-full sm:w-auto">
+                                    <input
+                                        value={newCropName}
+                                        onChange={(e) => {
+                                            setNewCropName(e.target.value);
+                                            setShowSuggestions(true);
+                                        }}
+                                        onFocus={() => setShowSuggestions(true)}
+                                        placeholder="Enter crop name..."
+                                        autoFocus
+                                        className="w-full bg-transparent border-none outline-none px-4 py-2 font-bold text-slate-900 dark:text-white min-w-[200px]"
+                                    />
+                                    <AnimatePresence>
+                                        {showSuggestions && newCropName && filteredSuggestions.length > 0 && (
+                                            <motion.div 
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                className="absolute top-full left-0 mt-2 w-full sm:w-[240px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden"
+                                            >
+                                                {filteredSuggestions.map((suggestion, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setNewCropName(suggestion.name);
+                                                            setShowSuggestions(false);
+                                                        }}
+                                                        className="w-full text-left px-5 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0"
+                                                    >
+                                                        {suggestion.name}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                                <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                                <input
+                                    type="number"
+                                    value={landArea}
+                                    onChange={(e) => setLandArea(e.target.value)}
+                                    placeholder="Land Area (Acres)"
+                                    className="bg-transparent border-none outline-none px-4 py-2 font-bold text-slate-900 dark:text-white min-w-[150px]"
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all w-full sm:w-auto mt-2 sm:mt-0"
+                                >
+                                    Confirm
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsAdding(false);
+                                        setShowSuggestions(false);
+                                        setNewCropName("");
+                                        setLandArea("");
+                                    }}
+                                    className="px-6 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all w-full sm:w-auto mt-2 sm:mt-0"
+                                >
+                                    Cancel
+                                </button>
+                            </motion.form>
+                        </div>
                     )}
                 </motion.div>
 
                 <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
-                    {cropsList.map((crop) => (
+                    <AnimatePresence mode="popLayout">
+                    {cropsList.map((crop, idx) => (
                         <motion.div
                             key={crop.id}
-                            variants={itemVariants}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 24, delay: Math.min(idx * 0.1, 0.3) }}
                             whileHover={{ y: -10 }}
-                            className="group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col transition-all duration-500"
+                            className="group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col transition-shadow duration-500"
                         >
                             <div className="h-56 overflow-hidden relative bg-slate-100 dark:bg-slate-800">
                                 <img
@@ -265,6 +360,18 @@ export default function CropHealthPage() {
                                             </span>
                                             <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{crop.temp}</p>
                                         </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                                <Layers className="h-3 w-3 text-indigo-500" /> Area
+                                            </span>
+                                            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{crop.area} Acres</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                                <Sprout className="h-3 w-3 text-emerald-500" /> Est. Yield
+                                            </span>
+                                            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{crop.estYield}</p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -316,6 +423,7 @@ export default function CropHealthPage() {
                             </div>
                         </motion.div>
                     ))}
+                    </AnimatePresence>
                 </div>
             </motion.div>
 

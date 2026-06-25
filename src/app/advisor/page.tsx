@@ -238,7 +238,10 @@ export default function AdvisorPage() {
                 }
 
                 utterance.onerror = (e) => {
-                    console.error("SpeechSynthesis Utterance Error details:", e.error, e);
+                    // "interrupted" and "canceled" are expected when synth.cancel() is called
+                    // intentionally (e.g. user clicks stop or switches message). Not a real error.
+                    if (e.error === 'interrupted' || e.error === 'canceled') return;
+                    console.error("SpeechSynthesis Utterance Error:", e.error, e);
                     if (playingIndexRef.current === index) {
                         setPlayingIndex(null);
                         playingIndexRef.current = null;
@@ -295,7 +298,7 @@ export default function AdvisorPage() {
     };
 
     return (
-        <div className="flex flex-col p-4 md:p-6 max-w-4xl mx-auto gap-4 h-[calc(100dvh-4rem)] md:h-[100dvh] w-full">
+        <div className="fixed inset-0 md:relative md:inset-auto flex flex-col p-3 md:p-6 max-w-4xl md:mx-auto gap-3 md:gap-4 md:h-[100dvh] w-full md:w-auto overflow-hidden z-10 bg-background md:bg-transparent mt-16 md:mt-0">
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">

@@ -7,10 +7,12 @@ import {
     Leaf, LayoutDashboard, ScanLine, Sprout, DollarSign, CloudSun,
     Settings, Menu, MessageSquare, BookOpen, Users, BarChart3, Truck, Globe, X, Activity
 } from "lucide-react";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/lib/language-context";
 import { NotificationBell } from "@/components/ui/NotificationBell";
+import { ActionCenterDrawer } from "@/components/ui/ActionCenterDrawer";
+import { History } from "lucide-react";
 
 const navItems = [
     { key: "nav.dashboard", href: "/", icon: LayoutDashboard },
@@ -23,27 +25,49 @@ const navItems = [
     { key: "nav.mandi", href: "/mandi-rates", icon: BarChart3 },
     { key: "nav.community", href: "/community", icon: Users },
     { key: "nav.transportation", href: "/transportation", icon: Truck },
-    { key: "nav.advisor", href: "/advisor", icon: MessageSquare },
     { key: "nav.settings", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
     const pathname = usePathname();
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(false);
     const [showLangPicker, setShowLangPicker] = useState(false);
     const { lang, setLang, t, languages } = useLanguage();
 
     return (
         <>
-            {/* Mobile Toggle */}
-            <div className="md:hidden fixed top-4 left-4 z-50">
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="p-2 bg-background border rounded-md shadow-sm"
-                >
-                    <Menu className="h-6 w-6" />
-                </button>
+            {/* Mobile Header */}
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl border-b border-slate-200 dark:border-white/10 z-50 flex items-center px-4 justify-between">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm text-slate-700 dark:text-slate-300"
+                    >
+                        <Menu className="h-5 w-5" />
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <Leaf className="h-6 w-6 text-emerald-500" />
+                        <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">AgriVision</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <NotificationBell />
+                    <button
+                        onClick={() => {
+                            const newParams = new URLSearchParams(window.location.search);
+                            newParams.set('action_center', 'true');
+                            window.history.pushState(null, '', `?${newParams.toString()}`);
+                        }}
+                        className="flex items-center justify-center p-2 rounded-xl border font-bold text-sm transition-all shadow-sm bg-indigo-600 text-white hover:bg-indigo-500 border-indigo-500/30 shrink-0"
+                    >
+                        <History className="h-5 w-5 shrink-0" />
+                    </button>
+                </div>
             </div>
+            
+            <Suspense fallback={null}>
+                <ActionCenterDrawer />
+            </Suspense>
 
             {/* Desktop Sidebar */}
             <motion.aside
@@ -55,26 +79,20 @@ export function Sidebar() {
                 )}
             >
                 {/* Header */}
-                <div className="h-20 flex items-center justify-between w-full shrink-0 border-b border-white/10 px-5 gap-3">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-md transition-colors shrink-0">
-                            <Menu className="h-6 w-6" />
-                        </button>
-                        {isOpen && (
-                            <motion.div 
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="flex items-center gap-2 overflow-hidden"
-                            >
-                                <Leaf className="h-8 w-8 text-emerald-400 shrink-0" />
-                                <span className="text-xl font-bold tracking-tight whitespace-nowrap">AgriVision</span>
-                            </motion.div>
-                        )}
-                    </div>
-                    {/* Add Notification Bell here */}
-                    <div className="shrink-0 flex items-center">
-                        <NotificationBell />
-                    </div>
+                <div className="h-20 flex items-center w-full shrink-0 border-b border-white/10 px-5 gap-3">
+                    <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-md transition-colors shrink-0">
+                        <Menu className="h-6 w-6" />
+                    </button>
+                    {isOpen && (
+                        <motion.div 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="flex items-center gap-2 overflow-hidden"
+                        >
+                            <Leaf className="h-8 w-8 text-emerald-400 shrink-0" />
+                            <span className="text-xl font-bold tracking-tight whitespace-nowrap">AgriVision</span>
+                        </motion.div>
+                    )}
                 </div>
 
                 {/* Nav Links */}
@@ -86,7 +104,7 @@ export function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 h-11 rounded-lg text-sm font-medium transition-colors relative group overflow-hidden whitespace-nowrap",
+                                    "flex items-center gap-3 h-11 rounded-lg text-sm font-bold transition-colors relative group overflow-hidden whitespace-nowrap",
                                     isOpen ? "px-3 w-full" : "px-0 w-11 justify-center mx-auto",
                                     isActive
                                         ? "bg-emerald-500/20 text-emerald-400"
@@ -111,7 +129,7 @@ export function Sidebar() {
                         id="sidebar-lang-toggle"
                         onClick={() => setShowLangPicker(!showLangPicker)}
                         className={cn(
-                            "flex items-center gap-2 h-11 rounded-lg text-sm font-medium transition-colors hover:bg-white/10 text-slate-300 hover:text-white overflow-hidden whitespace-nowrap",
+                            "flex items-center gap-2 h-11 rounded-lg text-sm font-bold transition-colors hover:bg-white/10 text-slate-300 hover:text-white overflow-hidden whitespace-nowrap",
                             isOpen ? "px-3 w-full" : "px-0 w-11 justify-center mx-auto"
                         )}
                     >
@@ -167,22 +185,30 @@ export function Sidebar() {
             {/* Mobile Sidebar Overlay */}
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
-                        initial={{ x: "-100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "-100%" }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className="md:hidden fixed inset-y-0 left-0 w-64 bg-slate-950/60 backdrop-blur-2xl border-r border-white/10 z-40 shadow-2xl flex flex-col text-white"
-                    >
-                        <div className="p-6 flex items-center gap-2 justify-between border-b border-white/10">
-                            <div className="flex items-center gap-2">
-                                <Leaf className="h-8 w-8 text-emerald-400" />
-                                <span className="text-xl font-bold">AgriVision</span>
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsOpen(false)}
+                            className="md:hidden fixed inset-0 z-[55] bg-slate-950/20 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            className="md:hidden fixed inset-y-0 left-0 w-64 bg-slate-950/90 backdrop-blur-2xl border-r border-white/10 z-[60] shadow-2xl flex flex-col text-white"
+                        >
+                            <div className="p-6 flex items-center gap-4 border-b border-white/10 shrink-0">
+                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-md -ml-2">
+                                    <Menu className="h-5 w-5 text-slate-300" />
+                                </button>
+                                <div className="flex items-center gap-2">
+                                    <Leaf className="h-8 w-8 text-emerald-400" />
+                                    <span className="text-xl font-bold">AgriVision</span>
+                                </div>
                             </div>
-                            <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-md">
-                                <Menu className="h-5 w-5 text-slate-300" />
-                            </button>
-                        </div>
 
                         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                             {navItems.map((item) => (
@@ -191,7 +217,7 @@ export function Sidebar() {
                                     href={item.href}
                                     onClick={() => setIsOpen(false)}
                                     className={cn(
-                                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-colors",
                                         pathname === item.href ? "bg-emerald-500/20 text-emerald-400" : "hover:bg-white/10 text-slate-300 hover:text-white"
                                     )}
                                 >
@@ -225,8 +251,25 @@ export function Sidebar() {
                             </div>
                         </div>
                     </motion.div>
+                    </>
                 )}
             </AnimatePresence>
+
+            {/* Desktop Top Right Actions */}
+            <div className="hidden md:flex fixed top-4 right-8 z-50 items-center gap-2 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[1rem] shadow-xl">
+                <NotificationBell />
+                <button
+                    onClick={() => {
+                        const newParams = new URLSearchParams(window.location.search);
+                        newParams.set('action_center', 'true');
+                        window.history.pushState(null, '', `?${newParams.toString()}`);
+                    }}
+                    className="flex items-center justify-center p-2 rounded-xl font-bold text-sm transition-all bg-indigo-600 text-white hover:bg-indigo-500 shrink-0"
+                    title="Action Center"
+                >
+                    <History className="h-5 w-5 shrink-0" />
+                </button>
+            </div>
         </>
     );
 }

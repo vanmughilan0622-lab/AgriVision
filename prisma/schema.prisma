@@ -29,6 +29,7 @@ model User {
   adviceReceived   Advice[] @relation("FarmerAdvice")
   diagnosisScans   DiagnosisScan[]
   notifications    Notification[]
+  scheduledTasks   ScheduledTask[]
 }
 
 model OnboardingProgress {
@@ -173,6 +174,8 @@ model DiagnosisScan {
   confidenceScore      Float
   severity             String   // Low, Medium, High
   description          String
+  explainability       String   @default("Analysis based on visual leaf patterns.")
+  riskMetrics          String   @default("{}") // JSON string of risk metrics
   recommendedTreatment String
   preventionTips       String
   status               String   @default("Pending") // Pending, Resolved
@@ -188,4 +191,16 @@ model Notification {
   type      String   // alert, info, warning
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model ScheduledTask {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String
+  dueDate     DateTime
+  status      String   @default("Pending") // Pending, Completed
+  category    String   @default("Disease") // Disease, Irrigation, Fertilizer, Pest, Weather, Financial
+  createdAt   DateTime @default(now())
 }

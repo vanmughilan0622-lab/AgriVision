@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, Calculator, LineChart, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/lib/language-context';
 
 interface MandiRate {
   name: string;
@@ -22,6 +23,7 @@ interface MandiData {
 }
 
 export default function MandiRatesPage() {
+  const { t } = useLanguage();
   const [data, setData] = useState<MandiData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -68,7 +70,7 @@ export default function MandiRatesPage() {
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-bold uppercase tracking-widest">Loading APMC Rates...</p>
+          <p className="text-slate-500 font-bold uppercase tracking-widest">{t("mandi.loadingRates")}</p>
         </div>
       </div>
     );
@@ -84,10 +86,10 @@ export default function MandiRatesPage() {
       <motion.div variants={itemVariants} className="space-y-2">
         <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
           <LineChart className="h-10 w-10 text-emerald-500" />
-          Live Mandi Rates
+          {t("mandi.liveRates")}
         </h1>
         <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">
-          Real-time APMC data sourced securely for {data?.state}
+          {t("mandi.realtimeSourced")} {data?.state}
         </p>
       </motion.div>
 
@@ -126,12 +128,12 @@ export default function MandiRatesPage() {
             
             <div className="flex justify-between items-center mt-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800">
               <div className="text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Min Price</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("mandi.minPrice")}</p>
                 <p className="font-bold text-slate-700 dark:text-slate-300">₹{mandi.minPrice}</p>
               </div>
               <div className="w-px h-8 bg-slate-200 dark:bg-slate-800"></div>
               <div className="text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Max Price</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("mandi.maxPrice")}</p>
                 <p className="font-bold text-slate-700 dark:text-slate-300">₹{mandi.maxPrice}</p>
               </div>
             </div>
@@ -146,14 +148,14 @@ export default function MandiRatesPage() {
           <div className="p-3 bg-emerald-500/10 rounded-2xl">
             <Calculator className="w-6 h-6 text-emerald-500" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white">Crop ROI Calculator</h2>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white">{t("mandi.calculatorTitle")}</h2>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10">
           
           <div className="space-y-6">
             <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Farm Area (Acres)</label>
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">{t("mandi.farmArea")}</label>
               <input 
                 type="number" 
                 value={area} 
@@ -162,7 +164,7 @@ export default function MandiRatesPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Expected Yield (Quintals/Acre)</label>
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">{t("mandi.expectedYield")}</label>
               <input 
                 type="number" 
                 value={yieldPerAcre} 
@@ -171,7 +173,7 @@ export default function MandiRatesPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Total Input Costs per Acre (₹)</label>
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">{t("mandi.inputCosts")}</label>
               <input 
                 type="number" 
                 value={inputCostPerAcre} 
@@ -189,25 +191,25 @@ export default function MandiRatesPage() {
             <div className="space-y-6 relative z-10">
               
               <div className="flex justify-between items-center">
-                <span className="text-sm font-bold text-slate-400">Total Yield</span>
+                <span className="text-sm font-bold text-slate-400">{t("mandi.totalYield")}</span>
                 <span className="text-xl font-black text-white">{totalYield} q</span>
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-sm font-bold text-slate-400">Expected Revenue</span>
+                <span className="text-sm font-bold text-slate-400">{t("mandi.expectedRevenue")}</span>
                 <span className="text-xl font-black text-white">₹{expectedRevenue.toLocaleString('en-IN')}</span>
               </div>
               
               <div className="flex justify-between items-center border-b border-slate-800 pb-6">
-                <span className="text-sm font-bold text-slate-400">Input Costs</span>
+                <span className="text-sm font-bold text-slate-400">{t("mandi.totalInputCosts")}</span>
                 <span className="text-xl font-black text-rose-400">- ₹{totalCost.toLocaleString('en-IN')}</span>
               </div>
 
               <div className="pt-2">
-                <span className="block text-sm font-bold text-slate-400 mb-2">Estimated Net Profit</span>
+                <span className="block text-sm font-bold text-slate-400 mb-2">{t("mandi.netProfit")}</span>
                 <div className="flex items-end gap-4">
                   <span className="text-5xl font-black text-emerald-400">₹{netProfit.toLocaleString('en-IN')}</span>
-                  <span className="text-sm font-bold text-emerald-400/80 mb-2 bg-emerald-500/10 px-3 py-1 rounded-full">{profitMargin}% Margin</span>
+                  <span className="text-sm font-bold text-emerald-400/80 mb-2 bg-emerald-500/10 px-3 py-1 rounded-full">{profitMargin}% {t("mandi.margin")}</span>
                 </div>
               </div>
 

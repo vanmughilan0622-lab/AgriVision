@@ -28,7 +28,7 @@ export function InteractiveEffects() {
     if (!isMounted) return null;
 
     return (
-        <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+        <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden hidden lg:block">
             {/* Glowing Light Aura */}
             <motion.div
                 className="absolute w-[600px] h-[600px] rounded-full bg-emerald-500/10 blur-[100px] mix-blend-screen"
@@ -39,18 +39,6 @@ export function InteractiveEffects() {
                 transition={{ type: "tween", ease: "linear", duration: 0 }}
             />
 
-            {/* Trailing Leaf */}
-            <motion.div
-                className="absolute text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] opacity-70"
-                style={{
-                    x: leafX,
-                    y: leafY,
-                    translateX: "-50%",
-                    translateY: "100%", // Offset slightly below and right of the actual cursor
-                }}
-            >
-                <Leaf className="w-5 h-5 -rotate-45" />
-            </motion.div>
         </div>
     );
 }

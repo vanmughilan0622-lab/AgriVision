@@ -62,7 +62,13 @@ export async function chatWithHuggingFace(
             ...formattedHistory
         ];
 
-        const models = ["HuggingFaceH4/zephyr-7b-beta", "Qwen/Qwen2.5-7B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3"];
+        const models = [
+            "Qwen/Qwen2.5-72B-Instruct", // Best multilingual
+            "Qwen/Qwen2.5-7B-Instruct",  // Excellent fallback
+            "mistralai/Mixtral-8x7B-Instruct-v0.1",
+            "meta-llama/Meta-Llama-3-8B-Instruct",
+            "HuggingFaceH4/zephyr-7b-beta"
+        ];
         let lastError: any;
         let response: any;
 

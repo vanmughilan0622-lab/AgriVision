@@ -23,7 +23,7 @@ export function BackgroundManager() {
     const bgImage = backgrounds[pathname] || "/bg/generic.png";
 
     return (
-        <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-slate-950">
+        <div className="fixed top-0 left-0 w-full h-[100lvh] -z-10 pointer-events-none overflow-hidden bg-slate-950">
             <AnimatePresence mode="wait">
                 <motion.div
                     key={bgImage}
@@ -33,17 +33,7 @@ export function BackgroundManager() {
                     transition={{ duration: 0.4, ease: "easeInOut" }}
                     className="absolute inset-0"
                 >
-                    <motion.div 
-                        animate={{ 
-                            scale: [1, 1.15, 1], 
-                            x: [0, -30, 0], 
-                            y: [0, -15, 0] 
-                        }}
-                        transition={{ 
-                            duration: 45, 
-                            repeat: Infinity, 
-                            ease: "linear" 
-                        }}
+                    <div 
                         className="w-full h-full bg-cover bg-center bg-no-repeat"
                         style={{ backgroundImage: `url(${bgImage})` }}
                     />

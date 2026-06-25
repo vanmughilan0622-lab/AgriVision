@@ -12,8 +12,6 @@ const withPWA = withPWAInit({
 });
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // your other next config options here
-};
+const nextConfig = {};
 
 export default withNextIntl(withPWA(nextConfig));
