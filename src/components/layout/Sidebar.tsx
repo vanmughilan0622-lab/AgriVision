@@ -37,7 +37,7 @@ export function Sidebar() {
     return (
         <>
             {/* Mobile Header */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-[calc(4rem+max(env(safe-area-inset-top),1.5rem))] pt-[max(env(safe-area-inset-top),1.5rem)] bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl border-b border-slate-200 dark:border-white/10 z-50 flex items-center px-4 justify-between">
+            <div className="md:hidden fixed top-0 left-0 right-0 h-[calc(4rem+max(env(safe-area-inset-top,0px),1.75rem))] pt-[max(env(safe-area-inset-top,0px),1.75rem)] bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl border-b border-slate-200 dark:border-white/10 z-50 flex items-center px-4 justify-between">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsOpen(!isOpen)}
@@ -74,7 +74,7 @@ export function Sidebar() {
                 initial={{ width: isOpen ? 240 : 80 }}
                 animate={{ width: isOpen ? 240 : 80 }}
                 className={cn(
-                    "hidden md:flex flex-col h-[100dvh] pt-[max(env(safe-area-inset-top),1.5rem)] pb-[env(safe-area-inset-bottom)] border-r border-white/10 bg-slate-950/40 backdrop-blur-2xl text-white sticky top-0 z-40",
+                    "hidden md:flex flex-col h-[100dvh] pt-[max(env(safe-area-inset-top,0px),1.75rem)] pb-[env(safe-area-inset-bottom)] border-r border-white/10 bg-slate-950/40 backdrop-blur-2xl text-white sticky top-0 z-40",
                     !isOpen && "items-center"
                 )}
             >
@@ -200,7 +200,7 @@ export function Sidebar() {
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                             className="md:hidden fixed inset-y-0 left-0 w-64 bg-slate-950/90 backdrop-blur-2xl border-r border-white/10 z-[60] shadow-2xl flex flex-col text-white"
                         >
-                            <div className="p-6 pt-[calc(1.5rem+max(env(safe-area-inset-top),1.5rem))] flex items-center gap-4 border-b border-white/10 shrink-0">
+                            <div className="p-6 pt-[calc(1.5rem+max(env(safe-area-inset-top,0px),1.75rem))] flex items-center gap-4 border-b border-white/10 shrink-0">
                                 <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-md -ml-2">
                                     <Menu className="h-5 w-5 text-slate-300" />
                                 </button>
