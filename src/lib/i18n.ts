@@ -203,8 +203,8 @@ export const T: TranslationDict = {
     "mandi.netProfit": { en: "Estimated Net Profit", hi: "अनुमानित शुद्ध लाभ", ta: "மதிப்பிடப்பட்ட நிகர லாபம்", te: "అంచనా వేసిన నికర లాభం", kn: "ಅಂದಾಜು ನಿವ್ವಳ ಲಾಭ", mr: "अंदाजित निव्वळ नफा", pa: "ਅੰਦਾਜ਼ਨ ਸ਼ੁੱਧ ਲਾਭ", gu: "અંદાજિત ચોખ્ખો નફો" },
     "mandi.margin": { en: "Margin", hi: "मार्जिन", ta: "ஓரம்", te: "మార్జిన్", kn: "ಮಾರ್ಜಿನ್", mr: "मार्जिन", pa: "ਮਾਰਜਿਨ", gu: "માર્જિન" },
     /* ── Advisor Extras ── */
-    "advisor.ai": { en: "AI", hi: "एआई", ta: "AI", te: "AI", kn: "AI", mr: "एआय", pa: "AI", gu: "AI" },
-    "advisor.advisor": { en: "Advisor", hi: "सलाहकार", ta: "ஆலோசகர்", te: "సలహాదారు", kn: "ಸಲಹೆಗಾರ", mr: "सल्लागार", pa: "ਸਲਾਹਕਾਰ", gu: "સલાહકાર" },
+    "advisor.ai": { en: "Talk with", hi: "बात करें", ta: "பேசவும்", te: "మాట్లాడండి", kn: "ಮಾತನಾಡಿ", mr: "बोला", pa: "ਗੱਲ ਕਰੋ", gu: "વાત કરો" },
+    "advisor.advisor": { en: "Valya AI", hi: "Valya AI", ta: "Valya AI", te: "Valya AI", kn: "Valya AI", mr: "Valya AI", pa: "Valya AI", gu: "Valya AI" },
     "advisor.stopDictating": { en: "Stop Dictating", hi: "बोलना बंद करें", ta: "வாசிப்பதை நிறுத்து", te: "చదవడం ఆపు", kn: "ಓದುವುದನ್ನು ನಿಲ್ಲಿಸಿ", mr: "वाचणे थांबवा", pa: "ਬੋਲਣਾ ਬੰਦ ਕਰੋ", gu: "વાંચવાનું બંધ કરો" },
     "advisor.readAloud": { en: "Read Aloud", hi: "जोर से पढ़ें", ta: "சத்தமாக வாசிக்கவும்", te: "బిగ్గరగా చదవండి", kn: "ಜೋರಾಗಿ ಓದಿ", mr: "मोठ्याने वाचा", pa: "ਉੱਚੀ ਆਵਾਜ਼ ਵਿੱਚ ਪੜ੍ਹੋ", gu: "મોટેથી વાંચો" },
     "advisor.qp1": { en: "Best fertilizer for wheat?", hi: "गेहूं के लिए सबसे अच्छा उर्वरक?", ta: "கோதுமைக்கு சிறந்த உரம்?", te: "గోధుమలకు ఉత్తమ ఎరువులు?", kn: "ಗೋಧಿಗೆ ಉತ್ತಮ ರಸಗೊಬ್ಬರ?", mr: "गव्हासाठी सर्वोत्तम खत?", pa: "ਕਣਕ ਲਈ ਸਭ ਤੋਂ ਵਧੀਆ ਖਾਦ?", gu: "ઘઉં માટે શ્રેષ્ઠ ખાતર?" },
