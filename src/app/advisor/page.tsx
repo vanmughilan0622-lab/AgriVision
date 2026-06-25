@@ -72,6 +72,7 @@ export default function AdvisorPage() {
     const [scanContext, setScanContext] = useState<string>("");
     const [playingIndex, setPlayingIndex] = useState<number | null>(null);
     const playingIndexRef = useRef<number | null>(null);
+    const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -108,21 +109,18 @@ export default function AdvisorPage() {
 
     const toggleAudio = async (text: string, index: number) => {
         try {
-            if (typeof window === "undefined" || !window.speechSynthesis) {
-                console.error("Speech synthesis not supported in this browser.");
-                return;
+            // Stop any currently playing audio
+            if (audioPlayerRef.current) {
+                audioPlayerRef.current.pause();
+                audioPlayerRef.current.src = "";
+                audioPlayerRef.current = null;
             }
 
-            const synth = window.speechSynthesis;
-
             if (playingIndexRef.current === index) {
-                synth.cancel();
                 setPlayingIndex(null);
                 playingIndexRef.current = null;
                 return;
             }
-
-            synth.cancel(); // Stop any currently playing speech
 
             setPlayingIndex(index);
             playingIndexRef.current = index;
@@ -130,71 +128,19 @@ export default function AdvisorPage() {
             const targetLang = language || 'en';
             const ttsLang = targetLang.split('-')[0];
 
-            const ttsLangMap: Record<string, string> = {
-                en: 'en-IN',
-                hi: 'hi-IN',
-                ta: 'ta-IN',
-                te: 'te-IN',
-                kn: 'kn-IN',
-                mr: 'mr-IN',
-                pa: 'pa-IN',
-                gu: 'gu-IN',
-            };
-            const speechLang = ttsLangMap[ttsLang] || 'en-IN';
-
-            // Queue a silent dummy utterance synchronously to keep the user gesture alive!
-            // Store it globally to prevent garbage collection
-            (window as any).speechUtterances = (window as any).speechUtterances || [];
-            const dummy = new SpeechSynthesisUtterance('');
-            dummy.volume = 0;
-            (window as any).speechUtterances.push(dummy);
-            synth.speak(dummy);
-
-            // Helper: resolve voices, waiting for voiceschanged if the list is empty
-            // (browsers like Chrome load voices asynchronously on first call).
-            const resolveVoice = (): Promise<SpeechSynthesisVoice | undefined> => {
-                return new Promise((resolve) => {
-                    const pick = () => {
-                        const all = synth.getVoices();
-                        const match = all.find(
-                            v => v.lang === speechLang ||
-                                 v.lang.replace('_', '-') === speechLang ||
-                                 v.lang.startsWith(speechLang.split('-')[0])
-                        );
-                        resolve(match);
-                    };
-                    const voices = synth.getVoices();
-                    if (voices.length > 0) {
-                        pick();
-                    } else {
-                        // Voices not loaded yet — wait for the event (with a 2s timeout)
-                        const timeout = setTimeout(() => {
-                            synth.removeEventListener('voiceschanged', onVoicesChanged);
-                            pick();
-                        }, 2000);
-                        const onVoicesChanged = () => {
-                            clearTimeout(timeout);
-                            synth.removeEventListener('voiceschanged', onVoicesChanged);
-                            pick();
-                        };
-                        synth.addEventListener('voiceschanged', onVoicesChanged);
-                    }
-                });
-            };
-
-            // Split text into sentences for natural pauses and to stay within engine limits
+            // Split text into chunks for TTS limit (max ~200 chars)
             const rawChunks = text.match(/[^.!?\n।]+[.!?\n।]*/g) || [text];
             const smallChunks: string[] = [];
             for (const chunk of rawChunks) {
                 const trimmed = chunk.trim();
                 if (!trimmed) continue;
-                if (trimmed.length <= 150) {
+                if (trimmed.length <= 180) {
                     smallChunks.push(trimmed);
                 } else {
                     const words = trimmed.split(' ');
                     let temp = "";
                     for (const w of words) {
-                        if (temp.length + w.length > 150) {
+                        if (temp.length + w.length > 180) {
                             if (temp.trim()) smallChunks.push(temp.trim());
                             temp = w + " ";
                         } else {
@@ -211,52 +157,46 @@ export default function AdvisorPage() {
                 return;
             }
 
-            // Resolve voice once, then queue all utterances
-            const bestVoice = await resolveVoice();
+            let currentChunkIdx = 0;
+            const audio = new Audio();
+            audioPlayerRef.current = audio;
 
-            // Store utterances globally to prevent garbage collection (a known Chrome bug)
-            (window as any).speechUtterances = (window as any).speechUtterances || [];
-            
-            // It's safe to clear previous utterances here because we already called synth.cancel() above
-            (window as any).speechUtterances.length = 0;
-
-            smallChunks.forEach((chunk, chunkIdx) => {
-                const utterance = new SpeechSynthesisUtterance(chunk);
-                (window as any).speechUtterances.push(utterance);
-                
-                utterance.lang = speechLang;
-                if (bestVoice) utterance.voice = bestVoice;
-
-                // Clean state on completion of the last chunk
-                if (chunkIdx === smallChunks.length - 1) {
-                    utterance.onend = () => {
-                        if (playingIndexRef.current === index) {
-                            setPlayingIndex(null);
-                            playingIndexRef.current = null;
-                        }
-                    };
-                }
-
-                utterance.onerror = (e) => {
-                    // "interrupted" and "canceled" are expected when synth.cancel() is called
-                    // intentionally (e.g. user clicks stop or switches message). Not a real error.
-                    if (e.error === 'interrupted' || e.error === 'canceled') return;
-                    console.error("SpeechSynthesis Utterance Error:", e.error, e);
+            const playNext = () => {
+                // If user stopped or we finished
+                if (currentChunkIdx >= smallChunks.length || playingIndexRef.current !== index) {
                     if (playingIndexRef.current === index) {
                         setPlayingIndex(null);
                         playingIndexRef.current = null;
                     }
-                };
+                    return;
+                }
+                const chunk = smallChunks[currentChunkIdx];
+                const url = `/api/tts?text=${encodeURIComponent(chunk)}&lang=${ttsLang}`;
+                audio.src = url;
+                audio.play().catch(e => {
+                    console.error("Audio playback failed:", e);
+                    setPlayingIndex(null);
+                    playingIndexRef.current = null;
+                });
+            };
 
-                synth.speak(utterance);
-            });
+            audio.onended = () => {
+                currentChunkIdx++;
+                playNext();
+            };
 
-        } catch (err) {
-            console.error('Failed to play audio', err);
-            if (playingIndexRef.current === index) {
+            audio.onerror = () => {
+                console.error("Audio streaming error");
                 setPlayingIndex(null);
                 playingIndexRef.current = null;
-            }
+            };
+
+            playNext();
+
+        } catch (e) {
+            console.error("TTS Error:", e);
+            setPlayingIndex(null);
+            playingIndexRef.current = null;
         }
     };
 
