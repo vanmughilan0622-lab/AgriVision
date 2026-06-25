@@ -8,6 +8,12 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://agrotech-resilience.vercel.app',
     cleartext: true
+  },
+  plugins: {
+    StatusBar: {
+      overlaysWebView: true,
+      style: 'DARK'
+    }
   }
 };
 
