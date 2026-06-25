@@ -30,6 +30,18 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
             }
         };
         initStatusBar();
+
+        // Force service worker to check for updates on every page load
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(reg => {
+                    reg.update();
+                    if (reg.waiting) {
+                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
+                });
+            });
+        }
     }, []);
 
     return (
