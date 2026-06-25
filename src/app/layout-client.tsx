@@ -20,9 +20,9 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
         const initStatusBar = async () => {
             if (Capacitor.isNativePlatform()) {
                 try {
-                    // Make status bar transparent and overlay the webview
-                    await StatusBar.setOverlaysWebView({ overlay: true });
-                    await StatusBar.setBackgroundColor({ color: '#00000000' }); // Transparent
+                    // Match the header's dark background exactly
+                    await StatusBar.setOverlaysWebView({ overlay: false });
+                    await StatusBar.setBackgroundColor({ color: '#020817' }); 
                     await StatusBar.setStyle({ style: Style.Dark }); // Light icons
                 } catch (e) {
                     console.error('StatusBar setup failed:', e);
@@ -57,7 +57,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
                                     duration: 0.3,
                                     ease: "easeInOut"
                                 }}
-                                className="w-full relative min-h-[100dvh] pt-[calc(4rem+max(env(safe-area-inset-top,0px),1.75rem))] md:pt-[max(env(safe-area-inset-top,0px),1.75rem)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden"
+                                className="w-full relative min-h-[100dvh] pt-[calc(4rem+env(safe-area-inset-top))] md:pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] overflow-x-hidden"
                             >
                                 {childrenArray[1]}
                             </motion.div>
@@ -65,7 +65,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
                     </div>
                 </>
             ) : (
-                <div className="w-full relative min-h-[100dvh] pt-[max(env(safe-area-inset-top,0px),1.75rem)] pb-[env(safe-area-inset-bottom)]">
+                <div className="w-full relative min-h-[100dvh] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
                     {children}
                 </div>
             )}
