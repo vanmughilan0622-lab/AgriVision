@@ -90,15 +90,15 @@
   }
 }
 
-@utility pt-safe {
-  padding-top: max(env(safe-area-inset-top, 0px), 2rem); /* Increased to 2rem/32px to guarantee clearance */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 2rem) !important;
 }
-@utility pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
 }
-@utility h-safe-header {
-  height: calc(4rem + max(env(safe-area-inset-top, 0px), 2rem));
+.h-safe-header {
+  height: calc(4rem + max(env(safe-area-inset-top, 0px), 2rem)) !important;
 }
-@utility pt-safe-main {
-  padding-top: calc(4rem + max(env(safe-area-inset-top, 0px), 2rem));
+.pt-safe-main {
+  padding-top: calc(4rem + max(env(safe-area-inset-top, 0px), 2rem)) !important;
 }
