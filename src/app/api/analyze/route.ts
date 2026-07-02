@@ -12,9 +12,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "No image provided" }, { status: 400 });
     }
     
-    const geminiKey = apiKey || process.env.GEMINI_API_KEY;
+    const geminiKey = apiKey || process.env.HUGGINGFACE_TOKEN || process.env.HUGGINGFACE_API_KEY;
     if (!geminiKey) {
-        return NextResponse.json({ success: false, error: "Gemini API key is missing. Please add it in Settings." }, { status: 401 });
+        return NextResponse.json({ success: false, error: "Hugging Face API key is missing. Please add it in Settings." }, { status: 401 });
     }
 
     const userId = await getDefaultUserId();

@@ -4,9 +4,9 @@ import { chatWithValya } from "@/lib/valya-client";
 
 export async function analyzePlantImage(imageBase64: string, apiKey: string) {
     try {
-        const geminiApiKey = apiKey || process.env.GEMINI_API_KEY;
+        const geminiApiKey = apiKey || process.env.HUGGINGFACE_TOKEN || process.env.HUGGINGFACE_API_KEY;
         if (!geminiApiKey) {
-            return { error: "API Key is missing. Please configure your Gemini API Key in Settings." };
+            return { error: "API Key is missing. Please configure your Hugging Face API Key in Settings." };
         }
 
         const prompt = `
