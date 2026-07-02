@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         ];
 
         const payload = {
-            model: "meta-llama/Llama-3.2-3B-Instruct",
+            model: "Qwen/Qwen2.5-7B-Instruct",
             messages: messages,
             stream: true,
             temperature: 0.7

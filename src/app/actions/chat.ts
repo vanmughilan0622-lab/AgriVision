@@ -22,7 +22,7 @@ export async function chatWithGemini(
         ];
 
         const payload = {
-            model: "meta-llama/Llama-3.2-3B-Instruct",
+            model: "Qwen/Qwen2.5-7B-Instruct",
             messages: messages,
             max_tokens: 1000,
         };
