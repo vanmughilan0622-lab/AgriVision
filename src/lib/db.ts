@@ -4,7 +4,12 @@ import { PrismaClient } from '@prisma/client';
 import ws from 'ws';
 
 neonConfig.webSocketConstructor = ws;
-const dbUrl = process.env.MY_REAL_DB_URL || process.env.DATABASE_URL || "";
+const dbUrl = 
+  process.env.POSTGRES_PRISMA_URL || 
+  process.env.DATABASEAGRI_POSTGRES_PRISMA_URL || 
+  process.env.database_POSTGRES_PRISMA_URL || 
+  process.env.DATABASE_URL || 
+  "";
 
 const pool = new Pool({ connectionString: dbUrl });
 const adapter = new PrismaNeon(pool as any);
