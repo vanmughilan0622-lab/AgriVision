@@ -82,7 +82,7 @@ export default function SettingsPage() {
                 <div className="grid md:grid-cols-1 gap-10">
 
                     {/* Profile Link */}
-                    <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl group cursor-pointer hover:border-emerald-500/30 transition-colors" onClick={() => router.push('/settings/profile')}>
+                    <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl group cursor-pointer hover:border-emerald-500/30 transition-colors" onClick={() => router.push('/profile')}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-6">
                                 <div className="p-4 bg-emerald-500/10 rounded-2xl">

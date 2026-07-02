@@ -27,7 +27,7 @@ export async function chatWithGemini(
             max_tokens: 1000,
         };
 
-        const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct/v1/chat/completions", {
+        const response = await fetch("https://router.huggingface.co/hf-inference/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

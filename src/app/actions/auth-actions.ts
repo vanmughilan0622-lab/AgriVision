@@ -91,15 +91,24 @@ export async function getUserProfile() {
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (!payload.userId) return null;
+    if (!payload.userId) {
+      cookieStore.delete("auth_token");
+      return null;
+    }
     
     const user = await db.user.findUnique({
       where: { id: payload.userId as string },
       select: { name: true, phone: true, role: true }
     });
     
+    if (!user) {
+      cookieStore.delete("auth_token");
+      return null;
+    }
+
     return user;
   } catch (error) {
+    cookieStore.delete("auth_token");
     return null;
   }
 }
