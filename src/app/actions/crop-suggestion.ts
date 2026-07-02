@@ -30,7 +30,7 @@ export async function getCropSuggestions(
             throw new Error("Hugging Face API key is not defined.");
         }
 
-        const response = await fetch("https://router.huggingface.co/hf-inference/v1/chat/completions", {
+        const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
