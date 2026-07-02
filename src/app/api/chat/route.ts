@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
             ? ` (Please reply strictly in ${langName} using its native script/alphabet. Do NOT transliterate into English letters.)`
             : "";
 
-        const hfToken = apiKey || process.env.HUGGINGFACE_TOKEN;
+        const hfToken = apiKey || process.env.HUGGINGFACE_TOKEN || process.env.HUGGINGFACE_API_KEY;
         
         if (!hfToken) {
             return new Response(JSON.stringify({ error: "Hugging Face Token is missing. Please add it in settings." }), { status: 401 });

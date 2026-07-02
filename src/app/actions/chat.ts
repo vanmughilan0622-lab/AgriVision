@@ -5,7 +5,7 @@ export async function chatWithGemini(
     apiKey: string
 ) {
     try {
-        const hfToken = apiKey || process.env.HUGGINGFACE_TOKEN;
+        const hfToken = apiKey || process.env.HUGGINGFACE_TOKEN || process.env.HUGGINGFACE_API_KEY;
         if (!hfToken) {
             return { error: "Token is missing. Please configure your Hugging Face Token in Settings." };
         }

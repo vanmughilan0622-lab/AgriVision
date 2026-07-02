@@ -25,7 +25,7 @@ export async function getCropSuggestions(
             temperature: 0.7
         };
 
-        const hfToken = apiKey || process.env.HUGGINGFACE_TOKEN;
+        const hfToken = apiKey || process.env.HUGGINGFACE_TOKEN || process.env.HUGGINGFACE_API_KEY;
         if (!hfToken) {
             throw new Error("Hugging Face API key is not defined.");
         }
