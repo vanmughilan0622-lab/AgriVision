@@ -19,6 +19,7 @@ import {
     Navigation
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
 
 interface Provider {
     id: string;
@@ -36,63 +37,63 @@ interface Provider {
     badgeColor?: string;
 }
 
-const providers: Provider[] = [
+const getProviders = (t: any): Provider[] => [
     {
         id: "agro-express",
         name: "AgroExpress Logistics",
-        type: "Refrigerated Transport",
+        type: t("transport.type.refrigerated"),
         rating: 4.8,
         reviews: 324,
-        coverage: ["Nashik", "Pune", "Mumbai", "Nagpur", "Aurangabad"],
-        capacity: "Up to 10 tonnes",
+        coverage: [t("loc.nashik"), t("loc.pune"), t("loc.mumbai"), t("loc.nagpur"), t("loc.aurangabad")],
+        capacity: t("transport.capacity.10t"),
         pricePerKm: 28,
         minCharge: 1200,
-        eta: "Same Day / Next Day",
+        eta: t("transport.eta.sameOrNext"),
         phone: "+91 98765 43210",
-        badge: "Top Rated",
+        badge: t("badge.top"),
         badgeColor: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
     },
     {
         id: "krishna-transport",
         name: "Krishna Agri Transport",
-        type: "General Cargo",
+        type: t("transport.type.cargo"),
         rating: 4.5,
         reviews: 187,
-        coverage: ["Nashik", "Pune", "Solapur", "Kolhapur"],
-        capacity: "Up to 20 tonnes",
+        coverage: [t("loc.nashik"), t("loc.pune"), t("loc.solapur"), t("loc.kolhapur")],
+        capacity: t("transport.capacity.20t"),
         pricePerKm: 18,
         minCharge: 800,
-        eta: "Next Day",
+        eta: t("transport.eta.nextDay"),
         phone: "+91 90123 45678",
-        badge: "Budget Friendly",
+        badge: t("badge.budget"),
         badgeColor: "bg-blue-500/10 text-blue-700 border-blue-500/20",
     },
     {
         id: "kisan-connect",
         name: "Kisan Connect",
-        type: "Small Mini Truck",
+        type: t("transport.type.mini"),
         rating: 4.3,
         reviews: 92,
-        coverage: ["Local district delivery only"],
-        capacity: "Up to 2 tonnes",
+        coverage: [t("loc.local")],
+        capacity: t("transport.capacity.2t"),
         pricePerKm: 12,
         minCharge: 400,
-        eta: "Within Hours",
+        eta: t("transport.eta.hours"),
         phone: "+91 91234 56789",
     },
     {
         id: "harvest-haul",
         name: "HarvestHaul Pro",
-        type: "Bulk Commodity",
+        type: t("transport.type.bulk"),
         rating: 4.6,
         reviews: 211,
-        coverage: ["Pan-India"],
-        capacity: "10–40 tonnes",
+        coverage: [t("loc.panindia")],
+        capacity: t("transport.capacity.bulk"),
         pricePerKm: 22,
         minCharge: 2500,
-        eta: "1–3 Days",
+        eta: t("transport.eta.days"),
         phone: "+91 88000 12345",
-        badge: "Pan-India",
+        badge: t("loc.panindia"),
         badgeColor: "bg-amber-500/10 text-amber-700 border-amber-500/20",
     },
 ];
@@ -130,6 +131,8 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function TransportationPage() {
+    const { t } = useLanguage();
+    const providers = getProviders(t);
     const [selected, setSelected] = useState<Provider | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [submitted, setSubmitted] = useState(false);

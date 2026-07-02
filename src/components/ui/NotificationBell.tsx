@@ -6,10 +6,12 @@ import { getNotifications, markNotificationAsRead } from "@/app/actions/notifica
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     async function fetchNotifs() {
@@ -50,15 +52,15 @@ export function NotificationBell() {
             className="fixed sm:absolute top-[4.5rem] sm:top-full left-4 right-4 sm:left-auto sm:right-0 sm:mt-2 w-auto sm:w-80 max-w-sm sm:max-w-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[1.5rem] shadow-2xl z-50 overflow-hidden"
           >
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 dark:text-white">Notifications</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white">{t("nav.notifications")}</h3>
               <span className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full font-bold">
-                {unreadCount} New
+                {unreadCount} {t("nav.new")}
               </span>
             </div>
             
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm">No notifications</div>
+                <div className="p-6 text-center text-slate-500 text-sm">{t("nav.noNotifications")}</div>
               ) : (
                 notifications.map(notif => (
                   <div 
@@ -71,7 +73,7 @@ export function NotificationBell() {
                     <div className="flex justify-between items-start gap-2 mb-1">
                       <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
                       {!notif.isRead && (
-                        <button onClick={() => handleMarkAsRead(notif.id)} className="text-emerald-500 hover:text-emerald-600" title="Mark as read">
+                        <button onClick={() => handleMarkAsRead(notif.id)} className="text-emerald-500 hover:text-emerald-600" title={t("nav.markAsRead")}>
                           <CheckCircle2 className="w-4 h-4" />
                         </button>
                       )}

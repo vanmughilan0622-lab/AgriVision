@@ -3,8 +3,19 @@
 import { CloudRain, Sun, Wind, Droplets, MapPin, Thermometer, Activity, Info, TrendingUp, Eye, Gauge, Leaf, CloudFog, Sunset, CloudLightning, CloudSun } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { getWeather } from "@/app/actions/weather-actions";
-import { cn, getWeatherCondition } from "@/lib/utils";
+import { getWeather, getCoordinates } from "@/app/actions/weather-actions";
+
+export function getWeatherCondition(code: number) {
+  if (code === 0) return { label: "env.clearSky", iconType: "Sun", color: "text-amber-400" };
+  if ([1, 2].includes(code)) return { label: "env.partlyCloudy", iconType: "Sun", color: "text-amber-300" };
+  if (code === 3) return { label: "env.overcast", iconType: "CloudFog", color: "text-slate-400" };
+  if ([45, 48].includes(code)) return { label: "env.fog", iconType: "CloudFog", color: "text-slate-400" };
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return { label: "env.rainy", iconType: "CloudRain", color: "text-blue-400" };
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return { label: "env.snow", iconType: "CloudRain", color: "text-blue-300" };
+  if ([95, 96, 99].includes(code)) return { label: "env.thunderstorm", iconType: "CloudLightning", color: "text-purple-400" };
+  return { label: "env.unknown", iconType: "CloudSun", color: "text-slate-400" };
+}
+import { cn } from "@/lib/utils";
 import { useLocation } from "@/lib/location-context";
 import { useLanguage } from "@/lib/language-context";
 
@@ -31,23 +42,23 @@ export default function EnvironmentPage() {
     const locationLabel = location.source !== "none" ? location.label : "Farm Location";
 
     const [vitals, setVitals] = useState([
-        { label: "Wind Speed", value: "--", sub: "--", icon: Wind, color: "text-blue-400", bg: "bg-blue-500/10" },
-        { label: "Humidity", value: "--", sub: "--", icon: Droplets, color: "text-cyan-400", bg: "bg-cyan-500/10" },
-        { label: "Rain Chance", value: "--", sub: "--", icon: CloudRain, color: "text-indigo-400", bg: "bg-indigo-500/10" },
-        { label: "UV Index", value: "--", sub: "--", icon: Sun, color: "text-amber-400", bg: "bg-amber-500/10" },
-        { label: "Visibility", value: "--", sub: "--", icon: Eye, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-        { label: "Air Pressure", value: "--", sub: "--", icon: Gauge, color: "text-purple-400", bg: "bg-purple-500/10" },
-        { label: "Cloud Cover", value: "--", sub: "--", icon: CloudFog, color: "text-orange-400", bg: "bg-orange-500/10" },
-        { label: "Dew Point", value: "--", sub: "--", icon: Sunset, color: "text-pink-400", bg: "bg-pink-500/10" },
+        { label: t("env.windSpeed"), value: "--", sub: "--", icon: Wind, color: "text-blue-400", bg: "bg-blue-500/10" },
+        { label: t("env.humidity"), value: "--", sub: "--", icon: Droplets, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+        { label: t("env.rainChance"), value: "--", sub: "--", icon: CloudRain, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+        { label: t("env.uvIndex"), value: "--", sub: "--", icon: Sun, color: "text-amber-400", bg: "bg-amber-500/10" },
+        { label: t("env.visibility"), value: "--", sub: "--", icon: Eye, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+        { label: t("env.airPressure"), value: "--", sub: "--", icon: Gauge, color: "text-purple-400", bg: "bg-purple-500/10" },
+        { label: t("env.cloudCover"), value: "--", sub: "--", icon: CloudFog, color: "text-orange-400", bg: "bg-orange-500/10" },
+        { label: t("env.dewPoint"), value: "--", sub: "--", icon: Sunset, color: "text-pink-400", bg: "bg-pink-500/10" },
     ]);
 
     const soilData = [
-        { label: "pH Level", value: "6.5", status: "Optimal", color: "emerald" },
-        { label: "Nitrogen (N)", value: "Low", status: "Recharge Needed", color: "rose" },
-        { label: "Phosphorus (P)", value: "High", status: "Optimal", color: "emerald" },
-        { label: "Potassium (K)", value: "Medium", status: "Stable", color: "amber" },
-        { label: "Organic Matter", value: "2.4%", status: "Below Ideal", color: "amber" },
-        { label: "Soil Temp", value: "19°C", status: "Good Range", color: "emerald" },
+        { label: t("env.phLevel"), value: "6.5", status: t("env.optimal"), color: "emerald" },
+        { label: t("env.nitrogen"), value: t("env.low"), status: t("env.rechargeNeeded"), color: "rose" },
+        { label: t("env.phosphorus"), value: t("env.high"), status: t("env.optimal"), color: "emerald" },
+        { label: t("env.potassium"), value: t("env.medium"), status: t("env.stable"), color: "amber" },
+        { label: t("env.organicMatter"), value: "2.4%", status: t("env.belowIdeal"), color: "amber" },
+        { label: t("env.soilTemp"), value: "19°C", status: t("env.goodRange"), color: "emerald" },
     ];
 
     const [forecast, setForecast] = useState([
@@ -59,91 +70,84 @@ export default function EnvironmentPage() {
     ]);
 
     const [currentTemp, setCurrentTemp] = useState("--");
-    const [currentCond, setCurrentCond] = useState({ label: "Loading...", icon: CloudSun, color: "text-amber-400" });
+    const [currentCond, setCurrentCond] = useState({ label: "env.loading", icon: CloudSun, color: "text-amber-400" });
     const [todayHigh, setTodayHigh] = useState("--");
     const [todayLow, setTodayLow] = useState("--");
-    const [isLoading, setIsLoading] = useState(true);
-    const [fetchError, setFetchError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Default fallback: Erode, Tamil Nadu
-        const DEFAULT_LAT = 11.341;
-        const DEFAULT_LON = 77.7172;
+        async function fetchEnv() {
+            if (location.source !== "none") {
+                let lat = location.lat;
+                let lon = location.lon;
 
-        async function doFetch(lat: number, lon: number) {
-            setIsLoading(true);
-            setFetchError(null);
-            try {
-                const res = await getWeather(lat, lon);
-                if (res.success) {
-                    const c = res.data.current;
-                    const d = res.data.daily;
-                    const cond = getWeatherCondition(c.weather_code);
-
-                    setCurrentTemp(Math.round(c.temperature_2m).toString());
-                    let IconComp = CloudSun;
-                    if (cond.iconType === "Sun") IconComp = Sun;
-                    if (cond.iconType === "CloudFog") IconComp = CloudFog;
-                    if (cond.iconType === "CloudRain") IconComp = CloudRain;
-                    if (cond.iconType === "CloudLightning") IconComp = CloudLightning;
-
-                    setCurrentCond({ label: cond.label, icon: IconComp, color: cond.color });
-                    setTodayHigh(Math.round(d.temperature_2m_max[0]).toString());
-                    setTodayLow(Math.round(d.temperature_2m_min[0]).toString());
-
-                    setVitals([
-                        { label: "Wind Speed", value: `${Math.round(c.wind_speed_10m)} km/h`, sub: `${c.wind_direction_10m}° Dir`, icon: Wind, color: "text-blue-400", bg: "bg-blue-500/10" },
-                        { label: "Humidity", value: `${Math.round(c.relative_humidity_2m)}%`, sub: "Live reading", icon: Droplets, color: "text-cyan-400", bg: "bg-cyan-500/10" },
-                        { label: "Rain Chance", value: `${d.precipitation_probability_max[0]}%`, sub: "Today max", icon: CloudRain, color: "text-indigo-400", bg: "bg-indigo-500/10" },
-                        { label: "UV Index", value: `${Math.round(d.uv_index_max[0])}`, sub: "Max Today", icon: Sun, color: "text-amber-400", bg: "bg-amber-500/10" },
-                        { label: "Visibility", value: `${(c.visibility / 1000).toFixed(1)} km`, sub: "Current", icon: Eye, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-                        { label: "Air Pressure", value: `${Math.round(c.pressure_msl)} hPa`, sub: "Sea level", icon: Gauge, color: "text-purple-400", bg: "bg-purple-500/10" },
-                        { label: "Cloud Cover", value: `${c.cloud_cover}%`, sub: "Sky coverage", icon: CloudFog, color: "text-orange-400", bg: "bg-orange-500/10" },
-                        { label: "Dew Point", value: `${Math.round(c.dew_point_2m)}°C`, sub: "Current", icon: Sunset, color: "text-pink-400", bg: "bg-pink-500/10" },
-                    ]);
-
-                    const forecastArr = [];
-                    for (let i = 0; i < 5; i++) {
-                        const dateStr = d.time[i];
-                        const date = new Date(dateStr);
-                        const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-                        const fCond = getWeatherCondition(d.weather_code[i]);
-                        let fIcon = CloudSun;
-                        if (fCond.iconType === "Sun") fIcon = Sun;
-                        if (fCond.iconType === "CloudFog") fIcon = CloudFog;
-                        if (fCond.iconType === "CloudRain") fIcon = CloudRain;
-                        if (fCond.iconType === "CloudLightning") fIcon = CloudLightning;
-                        forecastArr.push({
-                            day: i === 0 ? "Today" : dayName,
-                            icon: fIcon,
-                            high: Math.round(d.temperature_2m_max[i]).toString(),
-                            low: Math.round(d.temperature_2m_min[i]).toString(),
-                            rain: d.precipitation_probability_max[i].toString()
-                        });
+                if (!lat || !lon) {
+                    const geoRes = await getCoordinates(location.city);
+                    if (geoRes.success) {
+                        lat = geoRes.lat;
+                        lon = geoRes.lon;
                     }
-                    setForecast(forecastArr);
-                } else {
-                    setFetchError("Weather data unavailable. Check connection.");
-                    setCurrentCond({ label: "Unavailable", icon: CloudSun, color: "text-slate-400" });
                 }
-            } catch {
-                setFetchError("Failed to load weather.");
-                setCurrentCond({ label: "Error", icon: CloudSun, color: "text-slate-400" });
-            } finally {
-                setIsLoading(false);
+
+                if (lat && lon) {
+                    const res = await getWeather(lat, lon);
+                    if (res.success) {
+                        const c = res.data.current;
+                        const d = res.data.daily;
+                        const cond = getWeatherCondition(c.weather_code);
+                        
+                        setCurrentTemp(Math.round(c.temperature_2m).toString());
+                        let IconComp = CloudSun;
+                        if (cond.iconType === "Sun") IconComp = Sun;
+                        if (cond.iconType === "CloudFog") IconComp = CloudFog;
+                        if (cond.iconType === "CloudRain") IconComp = CloudRain;
+                        if (cond.iconType === "CloudLightning") IconComp = CloudLightning;
+                        
+                        setCurrentCond({ label: cond.label, icon: IconComp, color: cond.color });
+                        setTodayHigh(Math.round(d.temperature_2m_max[0]).toString());
+                        setTodayLow(Math.round(d.temperature_2m_min[0]).toString());
+
+                        setVitals([
+                            { label: t("env.windSpeed"), value: `${Math.round(c.wind_speed_10m)} km/h`, sub: `${c.wind_direction_10m}° Dir`, icon: Wind, color: "text-blue-400", bg: "bg-blue-500/10" },
+                            { label: t("env.humidity"), value: `${Math.round(c.relative_humidity_2m)}%`, sub: t("env.liveReading"), icon: Droplets, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+                            { label: t("env.rainChance"), value: `${d.precipitation_probability_max[0]}%`, sub: t("env.todayMax"), icon: CloudRain, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+                            { label: t("env.uvIndex"), value: `${Math.round(d.uv_index_max[0])}`, sub: t("env.todayMax"), icon: Sun, color: "text-amber-400", bg: "bg-amber-500/10" },
+                            { label: t("env.visibility"), value: `${(c.visibility / 1000).toFixed(1)} km`, sub: t("env.current"), icon: Eye, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+                            { label: t("env.airPressure"), value: `${Math.round(c.pressure_msl)} hPa`, sub: t("env.seaLevel"), icon: Gauge, color: "text-purple-400", bg: "bg-purple-500/10" },
+                            { label: t("env.cloudCover"), value: `${c.cloud_cover}%`, sub: t("env.skyCoverage"), icon: CloudFog, color: "text-orange-400", bg: "bg-orange-500/10" },
+                            { label: t("env.dewPoint"), value: `${Math.round(c.dew_point_2m)}°C`, sub: t("env.current"), icon: Sunset, color: "text-pink-400", bg: "bg-pink-500/10" },
+                        ]);
+
+                        const forecastArr = [];
+                        for (let i = 0; i < 5; i++) {
+                            const dateStr = d.time[i];
+                            const date = new Date(dateStr);
+                            const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+                            
+                            const fCond = getWeatherCondition(d.weather_code[i]);
+                            let fIcon = CloudSun;
+                            if (fCond.iconType === "Sun") fIcon = Sun;
+                            if (fCond.iconType === "CloudFog") fIcon = CloudFog;
+                            if (fCond.iconType === "CloudRain") fIcon = CloudRain;
+                            if (fCond.iconType === "CloudLightning") fIcon = CloudLightning;
+
+                            forecastArr.push({
+                                day: i === 0 ? t("env.today") : dayName,
+                                icon: fIcon,
+                                high: Math.round(d.temperature_2m_max[i]).toString(),
+                                low: Math.round(d.temperature_2m_min[i]).toString(),
+                                rain: d.precipitation_probability_max[i].toString()
+                            });
+                        }
+                        setForecast(forecastArr);
+                    }
+                } else {
+                    setCurrentCond({ label: "env.locNotFound", icon: CloudSun, color: "text-rose-500" });
+                }
+            } else {
+                setCurrentCond({ label: "env.awaitingLoc", icon: CloudSun, color: "text-slate-500" });
             }
         }
-
-        if (location.source !== "none" && location.lat && location.lon) {
-            // Location already available — fetch immediately
-            doFetch(location.lat, location.lon);
-        } else {
-            // Wait up to 5s for geolocation, then fall back to default
-            const timer = setTimeout(() => {
-                doFetch(DEFAULT_LAT, DEFAULT_LON);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
+        fetchEnv();
     }, [location]);
 
     return (
@@ -158,7 +162,7 @@ export default function EnvironmentPage() {
                     {t("env.title")}
                 </h1>
                 <p className="text-base text-slate-500 dark:text-slate-400 font-medium">
-                    Precision environmental monitoring for {locationLabel}.
+                    {t("env.subtitle")}{locationLabel}.
                 </p>
             </motion.div>
 
@@ -186,25 +190,11 @@ export default function EnvironmentPage() {
                         </div>
 
                         <div className="flex items-end gap-4 text-white mb-5">
-                            {isLoading ? (
-                                <div className="flex items-end gap-4 animate-pulse">
-                                    <div className="h-16 w-24 bg-white/10 rounded-2xl" />
-                                    <div className="mb-2 space-y-2">
-                                        <div className="h-5 w-24 bg-white/10 rounded-lg" />
-                                        <div className="h-3 w-32 bg-white/5 rounded-lg" />
-                                    </div>
-                                </div>
-                            ) : fetchError ? (
-                                <div className="text-rose-400 text-sm font-bold py-2">{fetchError}</div>
-                            ) : (
-                                <>
-                                    <span className="text-7xl font-black tracking-tighter leading-none">{currentTemp}°</span>
-                                    <div className="mb-2 space-y-0.5">
-                                        <p className={cn("text-2xl font-black", currentCond.color)}>{currentCond.label}</p>
-                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">High: {todayHigh}° • Low: {todayLow}°</p>
-                                    </div>
-                                </>
-                            )}
+                            <span className="text-7xl font-black tracking-tighter leading-none">{currentTemp}°</span>
+                            <div className="mb-2 space-y-0.5">
+                                <p className={cn("text-2xl font-black", currentCond.color)}>{t(currentCond.label)}</p>
+                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{t("env.high")}: {todayHigh}° • {t("env.low")}: {todayLow}°</p>
+                            </div>
                         </div>
 
                         {/* 5-day forecast row */}
@@ -228,7 +218,7 @@ export default function EnvironmentPage() {
                     className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-xl"
                 >
                     <div className="flex items-center justify-between mb-5">
-                        <h3 className="text-base font-black text-slate-900 dark:text-white">Soil Biometrics</h3>
+                        <h3 className="text-base font-black text-slate-900 dark:text-white">{t("env.soilBiometrics")}</h3>
                         <Activity className="h-5 w-5 text-emerald-500" />
                     </div>
 
@@ -255,7 +245,7 @@ export default function EnvironmentPage() {
 
             {/* 8 Environment Vitals Grid */}
             <motion.div variants={itemVariants}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Live Environment Vitals</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{t("env.liveVitals")}</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {vitals.map((v, idx) => (
                         <motion.div
@@ -289,9 +279,9 @@ export default function EnvironmentPage() {
                         <Info className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                        <h4 className="font-black text-white uppercase tracking-widest text-xs mb-1">Strategic Recommendation</h4>
+                        <h4 className="font-black text-white uppercase tracking-widest text-xs mb-1">{t("env.recommendation")}</h4>
                         <p className="text-emerald-50 font-bold text-sm leading-relaxed">
-                            Nitrogen levels are critically low in your field. Apply urea fertilizer (46% N) at 50 kg/acre before Tuesday's predicted rain for best absorption.
+                            {t("env.nitrogenRec")}
                         </p>
                     </div>
                 </div>

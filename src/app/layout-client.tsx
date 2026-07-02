@@ -1,51 +1,23 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Bot } from "lucide-react";
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { Capacitor } from '@capacitor/core';
 
 import { BackgroundManager } from "@/components/ui/BackgroundManager";
 import { InteractiveEffects } from "@/components/ui/InteractiveEffects";
+import { useLanguage } from "@/lib/language-context";
 
 export default function RootLayoutClient({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const { t } = useLanguage();
     const childrenArray = React.Children.toArray(children);
 
-    useEffect(() => {
-        const initStatusBar = async () => {
-            if (Capacitor.isNativePlatform()) {
-                try {
-                    // Match the header's dark background exactly
-                    await StatusBar.setOverlaysWebView({ overlay: false });
-                    await StatusBar.setBackgroundColor({ color: '#020817' }); 
-                    await StatusBar.setStyle({ style: Style.Dark }); // Light icons
-                } catch (e) {
-                    console.error('StatusBar setup failed:', e);
-                }
-            }
-        };
-        initStatusBar();
-
-        // Force service worker to check for updates on every page load
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(reg => {
-                    reg.update();
-                    if (reg.waiting) {
-                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                    }
-                });
-            });
-        }
-    }, []);
-
     return (
-        <div className="relative w-full max-w-full flex min-h-[100dvh] overflow-x-hidden">
+        <div className="relative w-full flex min-h-[100dvh]">
             {/* Live Wallpapers */}
             <BackgroundManager />
             
@@ -53,12 +25,17 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
             <InteractiveEffects />
 
             {/* Split layout: persistent sidebar + transitioning content */}
-            {childrenArray.length >= 2 ? (
+            {pathname === '/login' || pathname === '/register' || pathname === '/' ? (
+                <div className="flex-1 relative w-full min-h-[100dvh]">
+                    {/* Render everything EXCEPT the Sidebar (which is index 0) */}
+                    {childrenArray.slice(1)}
+                </div>
+            ) : childrenArray.length >= 2 ? (
                 <>
                     {/* The first child is the Sidebar (persistent) */}
                     {childrenArray[0]}
                     {/* The second child is the main container with the transition */}
-                    <div className="flex-1 relative min-w-0 overflow-x-hidden">
+                    <div className="flex-1 relative">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={pathname}
@@ -69,7 +46,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
                                     duration: 0.3,
                                     ease: "easeInOut"
                                 }}
-                                className="w-full relative min-h-[100dvh] pt-safe-main md:pt-safe pb-safe overflow-x-hidden"
+                                className="w-full relative min-h-[100dvh] pt-16 md:pt-0"
                             >
                                 {childrenArray[1]}
                             </motion.div>
@@ -77,13 +54,13 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
                     </div>
                 </>
             ) : (
-                <div className="w-full relative min-h-[100dvh] pt-safe pb-safe">
+                <div className="w-full relative min-h-[100dvh]">
                     {children}
                 </div>
             )}
 
             {/* Floating Valya AI Button */}
-            {pathname !== '/advisor' && pathname !== '/onboarding' && (
+            {pathname !== '/' && pathname !== '/advisor' && pathname !== '/onboarding' && pathname !== '/login' && pathname !== '/register' && (
                 <div className="fixed bottom-6 right-6 z-[100] md:bottom-10 md:right-10">
                     <Link href="/advisor">
                         <motion.button
@@ -96,7 +73,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
                             <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm group-hover:bg-white/30 transition-colors">
                                 <Bot className="h-6 w-6 md:h-7 md:w-7 text-white" />
                             </div>
-                            <span className="font-black tracking-tight text-sm md:text-base uppercase pr-2 hidden sm:inline">Talk with Valya AI</span>
+                            <span className="font-black tracking-tight text-sm md:text-base uppercase pr-2 hidden sm:inline">{t("nav.talkValya")}</span>
                         </motion.button>
                     </Link>
                 </div>

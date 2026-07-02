@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, AlertCircle, TrendingUp, Coins, Clock, Sprout, ChevronRight, ArrowRight, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getCropSuggestions, CropSuggestion as CropSuggestionType } from "@/app/actions/crop-suggestion-hf";
+import { getCropSuggestions, CropSuggestion as CropSuggestionType } from "@/app/actions/crop-suggestion";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/lib/language-context";
 
@@ -16,7 +16,7 @@ export default function CropSuggestionPage() {
     const [suggestions, setSuggestions] = useState<CropSuggestionType[]>([]);
 
     useEffect(() => {
-        const key = localStorage.getItem("huggingface_api_key");
+        const key = localStorage.getItem("hf_token");
         setApiKey(key);
     }, []);
 
@@ -30,7 +30,7 @@ export default function CropSuggestionPage() {
 
         try {
             // API key is optional - Hugging Face has a free tier
-            const response = await getCropSuggestions(query, apiKey || undefined);
+            const response = await getCropSuggestions(query, apiKey || "");
 
             if (response.error) {
                 setError(response.error);
@@ -38,7 +38,7 @@ export default function CropSuggestionPage() {
                 setSuggestions(response.suggestions);
             }
         } catch (err) {
-            setError("Failed to get suggestions. Please try again.");
+            setError(t("suggest.error"));
         } finally {
             setIsLoading(false);
         }
@@ -118,7 +118,7 @@ export default function CropSuggestionPage() {
                                     />
                                 ) : (
                                     <>
-                                        <span className="hidden sm:inline">Explore</span> <Zap className="h-4 w-4 md:h-5 md:w-5 fill-white" />
+                                        <span className="hidden sm:inline">{t("suggest.explore")}</span> <Zap className="h-4 w-4 md:h-5 md:w-5 fill-white" />
                                     </>
                                 )}
                             </motion.button>
@@ -126,9 +126,9 @@ export default function CropSuggestionPage() {
 
                         <div className="px-5 md:px-7 pb-4 md:pb-5 pt-0.5 flex flex-wrap gap-2 md:gap-3 items-center">
                             <span className="text-[9px] md:text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] mr-1 md:mr-2 flex items-center gap-1.5 md:gap-2">
-                                <Sparkles className="h-2.5 w-2.5 md:h-3 md:w-3 text-emerald-500" /> Suggested:
+                                <Sparkles className="h-2.5 w-2.5 md:h-3 md:w-3 text-emerald-500" /> {t("suggest.suggested")}
                             </span>
-                            {["Profit Maximizer", "Low Risk", "Fast Growth"].map((tag) => (
+                            {[t("suggest.profitMaximizer"), t("suggest.lowRisk"), t("suggest.fastGrowth")].map((tag) => (
                                 <motion.button
                                     key={tag}
                                     whileHover={{ y: -1 }}
@@ -293,8 +293,8 @@ export default function CropSuggestionPage() {
                             <Sprout className="h-14 w-14 text-emerald-600/40" />
                         </motion.div>
                         <div className="space-y-4">
-                            <h2 className="text-3xl font-black text-slate-800 dark:text-slate-200">Awaiting Your Input</h2>
-                            <p className="text-slate-400 dark:text-slate-600 max-w-sm mx-auto font-medium">Specify your land area, budget, or preferred season to generate custom botanical suggestions.</p>
+                            <h2 className="text-3xl font-black text-slate-800 dark:text-slate-200">{t("suggest.awaitingInput")}</h2>
+                            <p className="text-slate-400 dark:text-slate-600 max-w-sm mx-auto font-medium">{t("suggest.awaitingDesc")}</p>
                         </div>
                     </motion.div>
                 )}

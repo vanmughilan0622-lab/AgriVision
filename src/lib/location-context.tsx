@@ -32,16 +32,15 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     const [location, setLocationState] = useState<FarmerLocation>(defaultLocation);
 
     useEffect(() => {
-        const saved = localStorage.getItem("farmer_location");
+        const saved = localStorage.getItem("agrivision_user_loc_v2");
         if (saved) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             try { setLocationState(JSON.parse(saved)); } catch { }
         }
     }, []);
 
     const setLocation = (loc: FarmerLocation) => {
         setLocationState(loc);
-        localStorage.setItem("farmer_location", JSON.stringify(loc));
+        localStorage.setItem("agrivision_user_loc_v2", JSON.stringify(loc));
     };
 
     return (

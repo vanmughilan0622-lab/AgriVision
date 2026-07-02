@@ -1,319 +1,133 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import {
-  CloudSun,
-  Droplets,
-  Thermometer,
-  Wind,
-  AlertTriangle,
-  CheckCircle2,
-  Sprout,
-  ArrowUpRight,
-  Sparkles,
-  Zap,
-  MapPin,
-  LocateFixed,
-  X,
-  Check,
-  ChevronDown,
-  Filter,
-  QrCode,
-  CloudRain,
-  Download,
-  Map,
-  History,
-  Menu,
-  Sun,
-  CloudFog,
-  CloudLightning
-} from "lucide-react";
-import { getWeather, getCoordinates } from "@/app/actions/weather-actions";
-import { getWeatherCondition, cn } from "@/lib/utils";
-import { FarmHeatmap } from "@/components/ui/farm-heatmap";
-import { motion, AnimatePresence } from "framer-motion";
-import { useLocation } from "@/lib/location-context";
-import type { FarmerLocation } from "@/lib/location-context";
+// Force fresh deployment
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowRight, Leaf, Shield, Zap, Activity, Bot, Clock, LifeBuoy, Users, CloudRain, ChartBar, Globe, ChevronDown } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { getUserProfile } from "@/app/actions/auth-actions";
 import { useLanguage } from "@/lib/language-context";
 
-const indiaStatesDistricts: Record<string, string[]> = {
-  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool", "Tirupati", "Kadapa", "Anantapur"],
-  "Assam": ["Guwahati", "Dibrugarh", "Jorhat", "Silchar", "Nagaon", "Tezpur"],
-  "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Darbhanga", "Arrah", "Begusarai"],
-  "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba", "Durg"],
-  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Anand"],
-  "Haryana": ["Gurugram", "Faridabad", "Ambala", "Hisar", "Karnal", "Rohtak", "Panipat", "Sirsa"],
-  "Himachal Pradesh": ["Shimla", "Manali", "Dharamsala", "Kullu", "Solan", "Mandi"],
-  "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh"],
-  "Karnataka": ["Bengaluru", "Mysuru", "Hubli", "Dharwad", "Mangaluru", "Belagavi", "Kalaburagi", "Tumkur", "Davangere", "Hassan"],
-  "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur", "Kollam", "Palakkad", "Alappuzha"],
-  "Madhya Pradesh": ["Bhopal", "Indore", "Gwalior", "Jabalpur", "Ujjain", "Sagar", "Ratlam", "Dewas"],
-  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad", "Kolhapur", "Solapur", "Amravati", "Latur", "Akola", "Yavatmal", "Jalgaon", "Dhule"],
-  "Odisha": ["Bhubaneswar", "Cuttack", "Berhampur", "Sambalpur", "Rourkela", "Balasore", "Puri"],
-  "Punjab": ["Amritsar", "Ludhiana", "Jalandhar", "Patiala", "Bathinda", "Moga", "Gurdaspur", "Sangrur"],
-  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner", "Ajmer", "Bharatpur", "Sri Ganganagar", "Alwar"],
-  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Trichy", "Salem", "Tirunelveli", "Erode", "Dindigul", "Thanjavur", "Vellore"],
-  "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Khammam", "Karimnagar", "Ramagundam"],
-  "Uttar Pradesh": ["Lucknow", "Kanpur", "Agra", "Varanasi", "Meerut", "Allahabad", "Ghaziabad", "Aligarh", "Bareilly", "Moradabad", "Mathura", "Muzaffarnagar"],
-  "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani", "Rudrapur"],
-  "West Bengal": ["Kolkata", "Howrah", "Asansol", "Siliguri", "Bardhaman", "Malda", "Murshidabad"],
+// Apple-like spring transitions
+const springTransition = { type: "spring", stiffness: 100, damping: 20, mass: 1 };
+const smoothEase: [number, number, number, number] = [0.16, 1, 0.3, 1]; // Custom cubic-bezier for Apple-like smoothness
+
+const revealVariants = {
+  hidden: { opacity: 0, y: 50, scale: 0.95, filter: "blur(10px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1, 
+    filter: "blur(0px)",
+    transition: { duration: 1, ease: smoothEase }
+  }
 };
 
-// Default Data
-const defaultWeatherData = [
-  { label: "dash.tempLabel", value: "--", icon: Thermometer, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { label: "dash.humLabel", value: "--", icon: Droplets, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { label: "dash.windLabel", value: "--", icon: Wind, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { label: "dash.condLabel", value: "--", icon: CloudSun, color: "text-slate-400", bg: "bg-slate-500/10" },
-];
+const imageVariants = {
+  hidden: { opacity: 0, scale: 0.9, filter: "blur(15px)", y: 40 },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    filter: "blur(0px)", 
+    y: 0,
+    transition: { duration: 1.2, ease: smoothEase }
+  }
+};
 
-const cropStatus = [
-  {
-    name: "Wheat",
-    sector: "Sector 2",
-    status: "Good",
-    health: 92,
-    moisture: "Adequate",
-    growthStage: "Maturity Stage",
-    marketPrice: "₹2,275/qtl",
-    image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&q=80&w=200&h=200"
-  },
-  {
-    name: "Corn",
-    sector: "Sector 1",
-    status: "Attention",
-    health: 78,
-    moisture: "Low",
-    growthStage: "Vegetative Stage",
-    marketPrice: "₹1,962/qtl",
-    image: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&q=80&w=200&h=200"
-  },
-  {
-    name: "Tomato",
-    sector: "Sector 4",
-    status: "Critical",
-    health: 15,
-    moisture: "High",
-    growthStage: "Flowering Stage",
-    marketPrice: "₹3,500/qtl",
-    image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=200&h=200"
-  },
-];
-
-const containerVariants = {
+const textStagger = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
   }
 };
 
-const itemVariants: any = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring", stiffness: 300, damping: 24 } as const
+const textItem = {
+  hidden: { opacity: 0, y: 20, filter: "blur(5px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { duration: 0.8, ease: smoothEase }
   }
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useLanguage();
-  const styles: Record<string, string> = {
-    Good: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-    Attention: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-    Risk: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-    Critical: "bg-rose-500/10 text-rose-600 border-rose-500/20 animate-pulse",
-  };
-
-  return (
-    <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border", styles[status] || "bg-slate-100")}>
-      {t(`status.${status}`) || status}
-    </span>
-  );
-}
-
-export default function Dashboard() {
-  const { location, setLocation } = useLocation();
-  const { t } = useLanguage();
-  const [showLocPicker, setShowLocPicker] = useState(false);
-  const [locState, setLocState] = useState("");
-  const [locDistrict, setLocDistrict] = useState("");
-  const [gpsLoading, setGpsLoading] = useState(false);
-  const [gpsError, setGpsError] = useState<string | null>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
-  const [filterMode, setFilterMode] = useState<string>("All Sectors");
-  const [showFilterPicker, setShowFilterPicker] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
-  const [showIrrigationModal, setShowIrrigationModal] = useState(false);
-  const [irrigationStatus, setIrrigationStatus] = useState<"idle" | "loading" | "success">("idle");
-  const [showWeatherOverrideModal, setShowWeatherOverrideModal] = useState(false);
-  const [showGatePassModal, setShowGatePassModal] = useState(false);
-  const [gatePassCrop, setGatePassCrop] = useState<any>(null);
-  const [weatherData, setWeatherData] = useState(defaultWeatherData);
+export default function LandingPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const containerRef = useRef(null);
+  const { lang, setLang, languages, t } = useLanguage();
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  
+  // Parallax scrolling for background
+  const { scrollYProgress } = useScroll();
+  const yBg1 = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const yBg2 = useTransform(scrollYProgress, [0, 1], ["0%", "-50%"]);
+  const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const scaleHero = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
 
   useEffect(() => {
-    async function fetchW() {
-      if (location.source !== "none") {
-        let lat = location.lat;
-        let lon = location.lon;
-
-        if (!lat || !lon) {
-          const geoRes = await getCoordinates(location.city);
-          if (geoRes.success) {
-            lat = geoRes.lat;
-            lon = geoRes.lon;
-          }
-        }
-
-        if (lat && lon) {
-          const res = await getWeather(lat, lon);
-          if (res.success) {
-            const c = res.data.current;
-            const cond = getWeatherCondition(c.weather_code);
-            
-            let IconComponent = CloudSun;
-            if (cond.iconType === "Sun") IconComponent = Sun;
-            if (cond.iconType === "CloudFog") IconComponent = CloudFog;
-            if (cond.iconType === "CloudRain") IconComponent = CloudRain;
-            if (cond.iconType === "CloudLightning") IconComponent = CloudLightning;
-
-            setWeatherData([
-              { label: "dash.tempLabel", value: `${Math.round(c.temperature_2m)}°C`, icon: Thermometer, color: "text-amber-500", bg: "bg-amber-500/10" },
-              { label: "dash.humLabel", value: `${Math.round(c.relative_humidity_2m)}%`, icon: Droplets, color: "text-blue-500", bg: "bg-blue-500/10" },
-              { label: "dash.windLabel", value: `${Math.round(c.wind_speed_10m)} km/h`, icon: Wind, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-              { label: "dash.condLabel", value: cond.label, icon: IconComponent, color: cond.color, bg: "bg-slate-500/10" },
-            ]);
-          }
-        }
-      } else {
-        setWeatherData(defaultWeatherData);
-      }
-    }
-    fetchW();
-  }, [location]);
-
-  const districts = locState ? (indiaStatesDistricts[locState] || []) : [];
-
-  const sectors = Array.from(new Set(cropStatus.map(c => c.sector)));
-  const filterOptions = ["All Sectors", "Critical Status", "Attention Status", ...sectors];
-
-  const filteredCrops = cropStatus.filter(crop => {
-    if (filterMode === "All Sectors") return true;
-    if (filterMode === "Critical Status") return crop.status === "Critical";
-    if (filterMode === "Attention Status") return crop.status === "Attention";
-    return crop.sector === filterMode;
-  });
-
-  const handleGps = () => {
-    setGpsLoading(true);
-    setGpsError(null);
-    if (!navigator.geolocation) {
-      setGpsError("Geolocation not supported.");
-      setGpsLoading(false);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const loc: FarmerLocation = {
-          state: t("location.autoDetected"),
-          district: "",
-          city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-          label: `${t("location.gpsPrefix")}${latitude.toFixed(3)}°N, ${longitude.toFixed(3)}°E`,
-          lat: latitude,
-          lon: longitude,
-          source: "gps",
-        };
-        setLocation(loc);
-        setGpsLoading(false);
-        setShowLocPicker(false);
-      },
-      (err) => {
-        setGpsError("Location access denied. Use manual entry.");
-        setGpsLoading(false);
-      }
-    );
-  };
-
-  const handleManualSave = () => {
-    if (!locState) return;
-    const loc: FarmerLocation = {
-      state: locState,
-      district: locDistrict,
-      city: locDistrict || locState,
-      label: locDistrict ? `${locDistrict}, ${locState}` : locState,
-      source: "manual",
-    };
-    setLocation(loc);
-    setShowLocPicker(false);
-  };
+    getUserProfile().then((user) => {
+      setIsLoggedIn(!!user);
+    });
+  }, []);
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="p-6 md:p-10 space-y-10 max-w-7xl mx-auto"
-      onClick={() => { if (showLocPicker) setShowLocPicker(false); if (showFilterPicker) setShowFilterPicker(false); }}
-    >
-      <motion.div variants={itemVariants} className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="space-y-2">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-              <Zap className="h-10 w-10 text-emerald-500 fill-emerald-500" />
-              {t("dash.title")}
-            </h1>
-            <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">
-              {t("dash.subtitle")}
-            </p>
-          </div>
+    <div ref={containerRef} className="bg-[#020817] text-white overflow-hidden relative font-sans selection:bg-emerald-500/30">
+      {/* Background Orbs with Parallax */}
+      <motion.div style={{ y: yBg1 }} className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/15 rounded-full blur-[140px] pointer-events-none" />
+      <motion.div style={{ y: yBg2 }} className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/15 rounded-full blur-[140px] pointer-events-none" />
 
-        {/* Location Widget */}
-        <div className="relative shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative w-full sm:w-auto" ref={filterRef}>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                onClick={() => { setShowFilterPicker(!showFilterPicker); setShowLocPicker(false); }}
-                className={cn(
-                  "flex items-center justify-between sm:justify-start gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all shadow-sm w-full",
-                  filterMode !== "All Sectors" 
-                    ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-700 dark:text-indigo-400" 
-                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
-                )}
+      {/* Navigation */}
+      <motion.nav 
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: smoothEase }}
+        className="fixed w-full z-50 bg-[#020817]/60 backdrop-blur-xl border-b border-white/5 saturate-150"
+      >
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <Leaf className="h-8 w-8 text-emerald-500" />
+            <span className="text-2xl font-black tracking-tight text-white">AgriVision</span>
+          </motion.div>
+          <div className="flex items-center gap-4">
+            {/* Language Selector */}
+            <div className="relative">
+              <button
+                onClick={() => setShowLangMenu(!showLangMenu)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-slate-900/50 hover:bg-slate-800/50 hover:border-white/20 transition-all text-xs font-bold text-slate-300 hover:text-white"
               >
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 shrink-0" />
-                  <span className="max-w-[150px] truncate">{filterMode}</span>
-                </div>
-                <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
-              </motion.button>
+                <Globe className="h-3.5 w-3.5 text-emerald-500" />
+                <span>{languages.find(l => l.code === lang)?.name || "English"}</span>
+                <ChevronDown className={`h-3 w-3 transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
+              </button>
               <AnimatePresence>
-                {showFilterPicker && (
+                {showLangMenu && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                    className="absolute left-0 right-0 sm:right-auto top-full mt-2 sm:w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] shadow-2xl z-50 p-3 space-y-1"
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-44 bg-[#0a1224] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
                   >
-                    <div className="px-3 py-2 flex items-center justify-between mb-2">
-                      <p className="font-black text-slate-900 dark:text-white text-xs uppercase tracking-wider">{t("dash.filterBy")}</p>
-                    </div>
-                    {filterOptions.map(opt => (
+                    {languages.map((l) => (
                       <button
-                        key={opt}
-                        onClick={() => { setFilterMode(opt); setShowFilterPicker(false); }}
-                        className={cn(
-                          "w-full text-left px-4 py-3 rounded-xl font-bold text-sm transition-colors",
-                          filterMode === opt 
-                            ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" 
-                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        )}
+                        key={l.code}
+                        onClick={() => {
+                          setLang(l.code);
+                          setShowLangMenu(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition-all ${
+                          lang === l.code
+                            ? "bg-emerald-500/10 text-emerald-400 font-bold"
+                            : "hover:bg-white/5 text-slate-400 hover:text-white"
+                        }`}
                       >
-                        {opt === "All Sectors" ? t("dash.allSectors") : opt === "Critical Status" ? t("dash.criticalStatus") : opt === "Attention Status" ? t("dash.attentionStatus") : opt}
+                        <span>{l.name}</span>
+                        <span className="text-[10px] text-slate-500">{l.nativeName}</span>
                       </button>
                     ))}
                   </motion.div>
@@ -321,456 +135,243 @@ export default function Dashboard() {
               </AnimatePresence>
             </div>
 
-            <div className="relative w-full sm:w-auto" ref={pickerRef} onClick={e => e.stopPropagation()}>
-            <motion.button
-              id="location-widget"
-              whileHover={{ scale: 1.02 }}
-              onClick={() => { setShowLocPicker(!showLocPicker); setShowFilterPicker(false); }}
-              className={cn(
-                "flex items-center justify-between sm:justify-start gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all shadow-sm w-full",
-                location.source !== "none"
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <span className="max-w-[200px] truncate">{location.source !== "none" ? location.label : t("dash.setLocation")}</span>
-              </div>
-              <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
-            </motion.button>
-
-            <AnimatePresence>
-              {showLocPicker && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                  className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] shadow-2xl z-50 p-5 space-y-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="font-black text-slate-900 dark:text-white text-sm">{t("dash.setLocation")}</p>
-                    <button onClick={() => setShowLocPicker(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                      <X className="h-4 w-4 text-slate-400" />
-                    </button>
-                  </div>
-
-                  <button
-                    id="gps-detect"
-                    onClick={handleGps}
-                    disabled={gpsLoading}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all disabled:opacity-60"
-                  >
-                    <LocateFixed className="h-4 w-4" />
-                    {gpsLoading ? t("dash.detecting") : t("dash.gps")}
-                  </button>
-
-                  {gpsError && <p className="text-xs text-rose-600 font-bold text-center">{gpsError}</p>}
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("dash.orManual")}</span>
-                    <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
-                  </div>
-
-                  <div className="space-y-3">
-                    <select
-                      id="loc-state"
-                      value={locState}
-                      onChange={e => { setLocState(e.target.value); setLocDistrict(""); }}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    >
-                      <option value="">{t("dash.selectState")}</option>
-                      {Object.keys(indiaStatesDistricts).sort().map(s => <option key={s}>{s}</option>)}
-                    </select>
-
-                    <select
-                      id="loc-district"
-                      value={locDistrict}
-                      onChange={e => setLocDistrict(e.target.value)}
-                      disabled={!locState}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
-                    >
-                      <option value="">{t("dash.selectDistrict")}</option>
-                      {districts.map(d => <option key={d}>{d}</option>)}
-                    </select>
-
-                    <button
-                      id="save-location"
-                      onClick={handleManualSave}
-                      disabled={!locState}
-                      className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 dark:bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 dark:hover:bg-emerald-500 transition-all disabled:opacity-40"
-                    >
-                      <Check className="h-4 w-4" />
-                      {t("dash.saveLocation")}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            {isLoggedIn === null ? null : isLoggedIn ? (
+              <Link href="/dashboard">
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-full transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                >{t("landing.openDash")}</motion.button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm font-bold text-slate-300 hover:text-white transition-colors">{t("landing.login")}</Link>
+                <Link href="/login?mode=register">
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-full transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                  >{t("landing.signUp")}</motion.button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
-      </div>
-      </motion.div>
+      </motion.nav>
 
-      {/* Weather Section - Premium Tiles */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {weatherData.map((item, idx) => (
-          <motion.div
-            key={item.label}
-            variants={itemVariants}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="group relative p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] transition-all duration-500"
+      {/* Screen 1: Hero Section */}
+      <section className="relative z-10 min-h-[100dvh] flex items-center justify-center pt-20 px-6 text-center">
+        <motion.div
+          style={{ opacity: opacityHero, scale: scaleHero }}
+          className="max-w-5xl mx-auto space-y-8 flex flex-col items-center"
+        >
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8, filter: "blur(10px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            transition={{ duration: 1, ease: smoothEase }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 backdrop-blur-md border border-white/10 text-emerald-400 text-sm font-bold tracking-widest uppercase shadow-2xl"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{item.label.startsWith("dash.") ? t(item.label) : item.label}</span>
-              <div className={cn("p-2.5 rounded-2xl transition-colors duration-500 group-hover:bg-opacity-20", item.bg)}>
-                <item.icon className={cn("h-5 w-5", item.color)} />
-              </div>
-            </div>
-            <div className="mt-4 flex flex-col gap-1">
-              <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-black text-slate-900 dark:text-white">
-                  {location.source !== "none" ? item.value : "--"}
-                </div>
-                {location.source !== "none" && (
-                  <ArrowUpRight className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-                )}
-              </div>
-              {location.source === "none" && (
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t("dash.awaitingLoc")}</p>
-              )}
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            <Zap className="h-4 w-4" /> {t("landing.heroTag")}</motion.div>
+          
+          <motion.h1 
+            variants={textStagger}
+            initial="hidden"
+            animate="visible"
+            className="text-6xl md:text-8xl lg:text-[7rem] font-black tracking-tighter leading-[1.1]"
+          >
+            <motion.span variants={textItem} className="block">{t("landing.heroTitle1")}</motion.span>
+            <motion.span variants={textItem} className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-500 pb-4">{t("landing.heroTitle2")}</motion.span>
+          </motion.h1>
+          
+          <motion.p 
+            variants={textItem}
+            initial="hidden"
+            animate="visible"
+            className="text-xl md:text-2xl text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed"
+          >{t("landing.heroDesc")}</motion.p>
 
-      {/* Main Insights Grid */}
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-7">
-        <motion.div variants={itemVariants} className="col-span-full lg:col-span-4 order-1 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">{t("dash.activeCultivations")}</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t("dash.realtimeBiometrics")}</p>
-            </div>
-            <div className="p-3 bg-emerald-500/10 rounded-2xl">
-              <Sprout className="h-6 w-6 text-emerald-600" />
-            </div>
-          </div>
-          <div className="p-8 space-y-6">
-            {filteredCrops.length === 0 ? (
-              <div className="py-12 flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
-                  <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                </div>
-                <h4 className="text-lg font-black text-slate-900 dark:text-white mb-2">
-                  {(filterMode === "Critical Status" || filterMode === "Attention Status") 
-                    ? t("dash.allClear") 
-                    : t("dash.noMatches")}
-                </h4>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-sm">
-                  {(filterMode === "Critical Status" || filterMode === "Attention Status") 
-                    ? t("dash.allClearDesc").replace("{status}", filterMode.split(' ')[0].toLowerCase()) 
-                    : t("dash.noMatchesDesc")}
-                </p>
-              </div>
-            ) : filteredCrops.map((crop) => (
-              <motion.div
-                key={crop.name}
-                whileHover={{ x: 10 }}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-slate-50 dark:bg-slate-950/50 rounded-3xl border border-transparent hover:border-emerald-500/20 transition-all duration-300"
-              >
-                <div className="flex items-center gap-5">
-                  <div className="h-16 w-16 rounded-[1.5rem] overflow-hidden bg-white dark:bg-slate-900 shadow-sm flex items-center justify-center border border-slate-100 dark:border-slate-800">
-                    <img
-                      src={crop.image}
-                      alt={crop.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = `https://source.unsplash.com/featured/?${crop.name.toLowerCase()}`;
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-lg font-black text-slate-900 dark:text-white">
-                      {t(`crop.${crop.name}`)} <span className="text-sm text-slate-500 font-medium">({t(`sector.${crop.sector}`)})</span>
-                    </p>
-                    <div className="flex gap-3 mt-1">
-                      <p className="text-xs text-slate-500 dark:text-slate-500 font-bold uppercase tracking-tighter">{t("dash.stage")}: {t(`stage.${crop.growthStage}`)}</p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold uppercase tracking-tighter">{t("dash.market")}: {crop.marketPrice}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-8 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-900 dark:text-white">{crop.health}% {t("dash.healthPct")}</p>
-                    <div className="w-28 h-2 bg-slate-200 dark:bg-slate-800 rounded-full mt-2 overflow-hidden shadow-inner">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${crop.health}%` }}
-                        transition={{ duration: 1.5, delay: 0.5, ease: "circOut" }}
-                        className={cn(
-                          "h-full rounded-full",
-                          crop.health > 80 ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' :
-                            crop.health > 60 ? 'bg-gradient-to-r from-amber-600 to-amber-400' :
-                              'bg-gradient-to-r from-rose-600 to-rose-400'
-                        )}
-                      />
-                    </div>
-                  </div>
-                  <StatusBadge status={crop.status} />
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.8, ease: smoothEase }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8 w-full"
+          >
+            {isLoggedIn === null ? (
+              <div className="h-16" />
+            ) : isLoggedIn ? (
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <motion.button 
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg transition-colors flex items-center justify-center gap-2 shadow-[0_10px_40px_rgba(16,185,129,0.3)] group"
+                >{t("landing.openDash")}
+                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login?mode=register" className="w-full sm:w-auto block">
+                  <motion.div 
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full px-10 py-5 bg-white text-slate-900 hover:bg-slate-100 rounded-full font-bold text-lg transition-colors flex items-center justify-center gap-2 shadow-xl group cursor-pointer"
+                  >{t("landing.getStarted")}
+                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </motion.div>
+                </Link>
+                <Link href="/login" className="w-full sm:w-auto block">
+                   <motion.div 
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full px-10 py-5 bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 text-white rounded-full font-bold text-lg transition-colors flex items-center justify-center cursor-pointer"
+                  >{t("landing.signIn")}</motion.div>
+                </Link>
+              </>
+            )}
+          </motion.div>
         </motion.div>
+      </section>
 
-        {/* Spatial & Intelligence Column */}
-        <div className="col-span-full lg:col-span-3 space-y-8 order-2">
-          <motion.div variants={itemVariants}>
-            <FarmHeatmap cropStatus={cropStatus} activeFilter={filterMode} onSectorClick={setFilterMode} />
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">{t("dash.criticalAlerts")}</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t("dash.dynamicResponse")}</p>
-            </div>
-            <div className="p-3 bg-rose-500/10 rounded-2xl">
-              <AlertTriangle className="h-6 w-6 text-rose-500" />
-            </div>
-          </div>
-          <div className="p-8 space-y-5">
-            {[
-              { action: undefined, urgency: 1, urgencyLabel: "Critical Priority", type: "Danger", title: "Early Blight Detected", desc: "Tomato sector 4. High contagion risk. Isolate immediately.", icon: AlertTriangle, color: "text-rose-600", bg: "bg-rose-500/10", border: "border-rose-200/50" },
-              { action: "Activate Pump", urgency: 2, urgencyLabel: "Moderate Priority", type: "Warning", title: "Irrigation Needed", desc: "Corn field moisture < 30%. Reservoir at 80% capacity. Local water rate: ₹15/kL.", icon: Droplets, color: "text-amber-600", bg: "bg-amber-500/10", border: "border-amber-200/50" },
-              { action: "Generate Gate Pass", urgency: 3, urgencyLabel: "Low Priority", type: "Success", title: "Harvest Prime", desc: "Wheat sector 2 reached peak maturity. Market rates favorable.", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-500/10", border: "border-emerald-200/50" }
-            ].map((alert, idx) => (
-              <motion.div
-                key={idx}
-                whileHover={{ scale: 1.02 }}
-                className={cn("flex gap-5 items-start p-5 rounded-[1.8rem] border shadow-sm", alert.bg, alert.border)}
+      {/* Reusable Section Component for consistency */}
+      {[
+        {
+          title: t("landing.f1Title"),
+          highlight: t("landing.f1Highlight"),
+          desc: t("landing.f1Desc"),
+          icon: Shield, color: "emerald", img: "/disease_detection.png", reverse: false
+        },
+        {
+          title: t("landing.f2Title"),
+          highlight: t("landing.f2Highlight"),
+          desc: t("landing.f2Desc"),
+          icon: Bot, color: "blue", img: "/valya_agent.png", reverse: true
+        },
+        {
+          title: t("landing.f3Title"),
+          highlight: t("landing.f3Highlight"),
+          desc: t("landing.f3Desc"),
+          icon: Clock, color: "purple", img: "/ai_advice.png", reverse: false
+        },
+        {
+          title: t("landing.f4Title"),
+          highlight: t("landing.f4Highlight"),
+          desc: t("landing.f4Desc"),
+          icon: LifeBuoy, color: "orange", img: "/support_experts.png", reverse: true
+        },
+        {
+          title: t("landing.f5Title"),
+          highlight: t("landing.f5Highlight"),
+          desc: t("landing.f5Desc"),
+          icon: Activity, color: "emerald", img: "/real_time_vitals.png", reverse: false
+        },
+        {
+          title: t("landing.f6Title"),
+          highlight: t("landing.f6Highlight"),
+          desc: t("landing.f6Desc"),
+          icon: ChartBar, color: "amber", img: "/yield_prediction.png", reverse: true
+        },
+        {
+          title: t("landing.f7Title"),
+          highlight: t("landing.f7Highlight"),
+          desc: t("landing.f7Desc"),
+          icon: Users, color: "blue", img: "/community_market.png", reverse: false
+        },
+        {
+          title: t("landing.f8Title"),
+          highlight: t("landing.f8Highlight"),
+          desc: t("landing.f8Desc"),
+          icon: CloudRain, color: "cyan", img: "/environmental_insights.png", reverse: true
+        }
+      ].map((section, idx) => (
+        <section key={idx} className={`relative z-10 min-h-screen flex items-center px-6 py-32 ${section.reverse ? 'bg-slate-900/30' : ''}`}>
+          <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+            
+            <motion.div 
+              variants={revealVariants}
+              initial="hidden"
+              animate="visible"
+              viewport={{ once: true, margin: "0px" }}
+              className={`space-y-8 ${section.reverse ? 'order-2 lg:order-2' : 'order-2 lg:order-1'}`}
+            >
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className={`p-5 bg-${section.color}-500/10 rounded-3xl w-max backdrop-blur-md border border-${section.color}-500/20`}
               >
-                <div className={cn("p-3 rounded-2xl bg-white dark:bg-slate-900/50 shadow-sm", alert.color)}>
-                  <alert.icon className="h-6 w-6" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <h4 className={cn("font-black text-sm", alert.color)}>{alert.title}</h4>
-                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider", alert.bg, alert.color)}>
-                      {alert.urgencyLabel}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium leading-relaxed">{alert.desc}</p>
-                  {alert.action && (
-                    <button 
-                      onClick={() => {
-                        if (alert.action === "Activate Pump") {
-                          setShowWeatherOverrideModal(true);
-                        } else if (alert.action === "Generate Gate Pass") {
-                          const crop = cropStatus.find(c => c.name === "Wheat");
-                          setGatePassCrop(crop);
-                          setShowGatePassModal(true);
-                        }
-                      }}
-                      className="mt-4 px-5 py-2.5 bg-slate-900 dark:bg-slate-800 text-white rounded-xl text-xs font-black hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm flex items-center gap-2 uppercase tracking-wider"
-                    >
-                      {alert.action === "Activate Pump" ? <Zap className="h-3 w-3" /> : <QrCode className="h-3 w-3" />}
-                      {alert.action}
-                    </button>
-                  )}
-                </div>
+                <section.icon className={`h-8 w-8 text-${section.color}-400`} />
               </motion.div>
-            ))}
+              <h2 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]">
+                {section.title.split(section.highlight)[0]}
+                <span className={`text-${section.color}-400`}>{section.highlight}</span>
+                {section.title.split(section.highlight)[1]}
+              </h2>
+              <p className="text-xl md:text-2xl text-slate-400 leading-relaxed font-medium">
+                {section.desc}
+              </p>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className={`relative h-[500px] md:h-[700px] w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl ${section.reverse ? 'order-1 lg:order-1' : 'order-1 lg:order-2'}`}
+            >
+              <img src={`${section.img}`} alt={section.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} className="transition-transform duration-700 hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-transparent pointer-events-none" />
+            </motion.div>
           </div>
+        </section>
+      ))}
+
+      {/* Screen 10: Final CTA */}
+      <section className="relative z-10 flex items-center justify-center px-6 py-40 md:py-64 text-center overflow-hidden">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.5, ease: smoothEase }}
+          className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 to-transparent pointer-events-none" 
+        />
+        
+        <motion.div 
+          variants={textStagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          className="max-w-5xl mx-auto space-y-12 relative z-10"
+        >
+          <motion.h2 variants={textItem} className="text-6xl md:text-8xl lg:text-[7rem] font-black tracking-tighter leading-[1.1]">
+            {t("landing.ctaTitle").split(t("landing.ctaHighlight"))[0]}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-500">{t("landing.ctaHighlight")}</span>
+            {t("landing.ctaTitle").split(t("landing.ctaHighlight"))[1]}
+          </motion.h2>
+          <motion.p variants={textItem} className="text-2xl text-slate-400 font-medium max-w-3xl mx-auto">{t("landing.ctaDesc")}</motion.p>
+          
+          <motion.div variants={textItem} className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8">
+            {isLoggedIn === null ? (
+              <div className="h-20" />
+            ) : isLoggedIn ? (
+              <Link href="/dashboard" className="w-full sm:w-auto block">
+                <motion.div 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full sm:w-max px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-black text-xl transition-colors flex items-center justify-center gap-3 shadow-[0_20px_50px_rgba(16,185,129,0.4)] group whitespace-nowrap cursor-pointer"
+                >{t("landing.openDash")}
+                  <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
+                </motion.div>
+              </Link>
+            ) : (
+              <Link href="/login?mode=register" className="w-full sm:w-auto block">
+                <motion.div 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full sm:w-max px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-black text-xl transition-colors flex items-center justify-center gap-3 shadow-[0_20px_50px_rgba(16,185,129,0.4)] group whitespace-nowrap cursor-pointer"
+                >{t("landing.getStartedFree")}
+                  <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
+                </motion.div>
+              </Link>
+            )}
           </motion.div>
-
-        </div>
-      </div>
-
-      {/* Professional Footer Stat */}
-      <motion.div
-        variants={itemVariants}
-        className="p-8 bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl shadow-emerald-500/20"
-      >
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-white/20 rounded-3xl backdrop-blur-md">
-            <Sparkles className="h-8 w-8 text-white fill-white" />
-          </div>
-          <div>
-            <h4 className="text-2xl font-black">AI Yield & Resource Score: +84%</h4>
-            <p className="text-emerald-50 font-medium">Based on historical yield comparisons and active water conservation.</p>
-          </div>
-        </div>
-        <button className="mt-6 md:mt-0 px-8 py-4 bg-white text-emerald-600 rounded-[1.5rem] font-black hover:bg-emerald-50 transition-colors shadow-lg shadow-black/5">
-          Download Report
-        </button>
-      </motion.div>
-
-      {/* Irrigation Confirmation Modal */}
-      <AnimatePresence>
-        {showIrrigationModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowIrrigationModal(false)}>
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
-            >
-              <div className="p-8">
-                <div className="w-16 h-16 bg-amber-500/10 rounded-3xl flex items-center justify-center mb-6">
-                  <AlertTriangle className="h-8 w-8 text-amber-600" />
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Confirm Action</h3>
-                <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-8">
-                  You are about to activate the physical irrigation pumps for <strong className="text-slate-700 dark:text-slate-300">Corn Field (Sector 1)</strong>. This will consume approximately 1500L of reservoir capacity. Proceed?
-                </p>
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => setShowIrrigationModal(false)}
-                    className="flex-1 px-6 py-4 rounded-2xl font-black text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    disabled={irrigationStatus !== "idle"}
-                    onClick={() => {
-                      setIrrigationStatus("loading");
-                      setTimeout(() => {
-                        setIrrigationStatus("success");
-                        setTimeout(() => {
-                          setShowIrrigationModal(false);
-                          setIrrigationStatus("idle");
-                        }, 2000);
-                      }, 6000); // Simulating hardware relay latency
-                    }}
-                    className={cn(
-                      "flex-1 px-6 py-4 rounded-2xl font-black text-white transition-all flex items-center justify-center gap-2",
-                      irrigationStatus === "idle" ? "bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-500/20 cursor-pointer" :
-                      irrigationStatus === "loading" ? "bg-slate-700 cursor-wait opacity-90" : "bg-emerald-500 shadow-md shadow-emerald-500/20"
-                    )}
-                  >
-                    {irrigationStatus === "loading" && <Zap className="h-4 w-4 animate-pulse text-amber-400" />}
-                    {irrigationStatus === "idle" ? "Activate Pump" : irrigationStatus === "loading" ? "Syncing with Valve..." : "Command Acknowledged!"}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Weather Override Modal */}
-      <AnimatePresence>
-        {showWeatherOverrideModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowWeatherOverrideModal(false)}>
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] border border-sky-200 dark:border-sky-800 shadow-2xl overflow-hidden"
-            >
-              <div className="p-8">
-                <div className="w-16 h-16 bg-sky-500/10 rounded-3xl flex items-center justify-center mb-6">
-                  <CloudRain className="h-8 w-8 text-sky-500" />
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Predictive Weather Alert</h3>
-                <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-6">
-                  Heavy rain is forecast with <strong className="text-slate-700 dark:text-slate-300">&gt;80% probability in 4 hours</strong>. Activating pumps now may over-saturate Sector 1 and waste approximately <strong className="text-slate-700 dark:text-slate-300">₹450</strong> in utility costs.
-                </p>
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => { setShowWeatherOverrideModal(false); setShowIrrigationModal(true); }}
-                    className="flex-1 px-4 py-4 rounded-2xl font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors text-sm"
-                  >
-                    Override & Activate
-                  </button>
-                  <button 
-                    onClick={() => setShowWeatherOverrideModal(false)}
-                    className="flex-1 px-4 py-4 rounded-2xl font-black text-white bg-sky-500 hover:bg-sky-600 transition-colors text-sm"
-                  >
-                    Delay Irrigation
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Gate Pass Modal */}
-      <AnimatePresence>
-        {showGatePassModal && gatePassCrop && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowGatePassModal(false)}>
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
-            >
-              <div className="p-8">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">e-NAM Gate Pass</h3>
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Lot ID: #WHT-0824-X</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    </div>
-                    <button onClick={() => setShowGatePassModal(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                      <X className="h-5 w-5 text-slate-500" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[1.5rem] p-5 mb-6 space-y-4 border border-slate-100 dark:border-slate-800">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Commodity</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white">{gatePassCrop.name} ({gatePassCrop.sector})</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Est. Yield</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white">42 Quintals</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Market Rate</span>
-                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{gatePassCrop.marketPrice}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Est. Value</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white">₹95,550</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-center mb-8">
-                  {/* Mock SVG QR Code */}
-                  <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
-                    <svg width="120" height="120" viewBox="0 0 100 100" fill="currentColor" className="text-slate-900">
-                      <rect width="100" height="100" fill="white" />
-                      <path d="M10,10 h20 v20 h-20 z M15,15 h10 v10 h-10 z M70,10 h20 v20 h-20 z M75,15 h10 v10 h-10 z M10,70 h20 v20 h-20 z M15,75 h10 v10 h-10 z M40,10 h20 v10 h-20 z M45,25 h15 v5 h-15 z M10,40 h15 v5 h-15 z M30,40 h10 v15 h-10 z M50,40 h20 v10 h-20 z M80,40 h10 v15 h-10 z M40,60 h15 v10 h-15 z M70,60 h20 v5 h-20 z M70,75 h10 v15 h-10 z M85,75 h5 v5 h-5 z" fill="black" />
-                    </svg>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => setShowGatePassModal(false)}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-black text-white bg-slate-900 hover:bg-slate-800 transition-colors"
-                >
-                  <Download className="h-4 w-4" />
-                  Download PDF
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-    </motion.div>
+        </motion.div>
+      </section>
+    </div>
   );
 }

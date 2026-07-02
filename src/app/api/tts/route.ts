@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
-import * as googleTTS from 'google-tts-api';
+import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
     const text = req.nextUrl.searchParams.get('text');
@@ -10,17 +9,26 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const base64Audio = await googleTTS.getAudioBase64(text, {
-            lang: lang,
-            slow: false,
-            host: 'https://translate.google.com',
-        });
+        const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=${lang}&q=${encodeURIComponent(text)}`;
         
-        const buffer = Buffer.from(base64Audio, 'base64');
-        return new NextResponse(buffer, {
+        const response = await fetch(url, {
+            headers: {
+                // Mimic a real browser to prevent Google from blocking the request
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://translate.google.com/'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Google TTS failed with status: ${response.status}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+
+        return new Response(arrayBuffer, {
             headers: {
                 'Content-Type': 'audio/mpeg',
-                'Content-Length': buffer.byteLength.toString(),
+                'Content-Length': arrayBuffer.byteLength.toString(),
                 'Cache-Control': 'public, max-age=3600',
             },
         });

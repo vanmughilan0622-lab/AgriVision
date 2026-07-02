@@ -3,6 +3,7 @@
 import { DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft, Plus, Calendar, Filter, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
 
 // Mock financial data
 const summary = {
@@ -12,13 +13,7 @@ const summary = {
     growth: 12.5,
 };
 
-const transactions = [
-    { id: 1, type: "income", description: "Wheat Harvest Sale", amount: 45000, date: "2024-02-15", category: "Sales" },
-    { id: 2, type: "expense", description: "Fertilizer Purchase", amount: 2500, date: "2024-02-12", category: "Supplies" },
-    { id: 3, type: "expense", description: "Irrigation Maintenance", amount: 800, date: "2024-02-10", category: "Maintenance" },
-    { id: 4, type: "income", description: "Corn Sale Advance", amount: 15000, date: "2024-02-08", category: "Sales" },
-    { id: 5, type: "expense", description: "Labor Costs - Jan", amount: 5000, date: "2024-02-01", category: "Labor" },
-];
+
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -38,152 +33,116 @@ const itemVariants: any = {
 };
 
 export default function FinancialsPage() {
+    const { t } = useLanguage();
+
+    const transactions = [
+        { id: 1, type: "income", description: t("finance.trans1"), amount: 45000, date: "2024-02-15", category: t("finance.catSales") },
+        { id: 2, type: "expense", description: t("finance.trans2"), amount: 2500, date: "2024-02-12", category: t("finance.catSupplies") },
+        { id: 3, type: "expense", description: t("finance.trans3"), amount: 800, date: "2024-02-10", category: t("finance.catMaintenance") },
+        { id: 4, type: "income", description: t("finance.trans4"), amount: 15000, date: "2024-02-08", category: t("finance.catSales") },
+        { id: 5, type: "expense", description: t("finance.trans5"), amount: 5000, date: "2024-02-01", category: t("finance.catLabor") },
+    ];
     return (
         <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="p-4 md:p-8 space-y-6 md:space-y-12 max-w-7xl mx-auto w-full overflow-x-hidden"
+            className="p-4 md:p-8 space-y-12 max-w-7xl mx-auto"
         >
-            <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-6">
-                <div className="space-y-1">
-                    <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
-                        Financial <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">Hub</span>
+            <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="space-y-2">
+                    <h1 className="text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400 pb-2">
+                        {t("finance.title")}
                     </h1>
-                    <p className="text-sm md:text-xl text-slate-500 dark:text-slate-400 font-medium">
-                        Real-time fiscal monitoring and profit choreography.
+                    <p className="text-xl text-slate-500 dark:text-slate-400 font-medium">
+                        {t("finance.subtitle")}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-2 px-4 py-2.5 md:px-6 md:py-3 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm text-sm md:text-base">
-                        <Download className="h-4 w-4 md:h-5 md:w-5" />
-                        Export
+                <div className="flex items-center gap-3">
+                    <button className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
+                        <Download className="h-5 w-5" />
+                        {t("finance.export")}
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2.5 md:px-6 md:py-3 bg-emerald-600 text-white rounded-2xl font-black hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-500/20 active:scale-95 text-sm md:text-base">
-                        <Plus className="h-4 w-4 md:h-5 md:w-5" />
-                        Add Record
+                    <button className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-500/20 active:scale-95">
+                        <Plus className="h-5 w-5" />
+                        {t("finance.addRecord")}
                     </button>
                 </div>
             </motion.div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
+            <div className="grid gap-6 md:grid-cols-3">
                 {[
-                    { label: "Total Revenue", value: summary.income, growth: "+15%", icon: TrendingUp, color: "emerald" },
-                    { label: "Operating Costs", value: summary.expenses, growth: "+4%", icon: TrendingDown, color: "rose" },
-                    { label: "Net Yield (AI)", value: summary.netProfit, growth: "Healthy", icon: DollarSign, color: "amber" }
+                    { label: t("finance.revenue"), value: summary.income, growth: "+15%", icon: TrendingUp, color: "emerald" },
+                    { label: t("finance.costs"), value: summary.expenses, growth: "+4%", icon: TrendingDown, color: "rose" },
+                    { label: t("finance.netYield"), value: summary.netProfit, growth: t("finance.healthy"), icon: DollarSign, color: "amber" }
                 ].map((card, i) => (
                     <motion.div
                         key={i}
                         variants={itemVariants}
-                        whileHover={{ y: -3, scale: 1.02 }}
+                        whileHover={{ y: -5, scale: 1.02 }}
                         className={cn(
-                            "relative p-4 md:p-8 rounded-3xl md:rounded-[2.5rem] shadow-xl overflow-hidden border transition-all duration-500 group",
-                            i === 2 ? "col-span-2 md:col-span-1" : "",
+                            "relative p-8 rounded-[2.5rem] shadow-2xl overflow-hidden border transition-all duration-500 group",
                             card.color === "emerald" ? "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-800/50" :
                                 card.color === "rose" ? "bg-rose-50 border-rose-100 dark:bg-rose-950/20 dark:border-rose-800/50" :
                                     "bg-slate-900 border-slate-800 text-white"
                         )}
                     >
-                        <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <card.icon className="h-12 w-12 md:h-24 md:w-24" />
+                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <card.icon className="h-24 w-24" />
                         </div>
 
-                        <div className="relative z-10 flex flex-col h-full justify-between gap-4 md:gap-8">
-                            <div className="space-y-0.5">
+                        <div className="relative z-10 flex flex-col h-full justify-between gap-8">
+                            <div className="space-y-1">
                                 <span className={cn(
-                                    "text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-[0.2em]",
+                                    "text-[10px] font-black uppercase tracking-[0.2em]",
                                     card.color === "emerald" ? "text-emerald-600" :
                                         card.color === "rose" ? "text-rose-600" : "text-slate-400"
                                 )}>
                                     {card.label}
                                 </span>
-                                <div className="text-2xl md:text-4xl font-black tracking-tight" suppressHydrationWarning>
+                                <div className="text-4xl font-black tracking-tight" suppressHydrationWarning>
                                     ₹{card.value.toLocaleString()}
                                 </div>
                             </div>
 
                             <div className={cn(
-                                "inline-flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-[10px] md:text-xs font-black w-fit",
+                                "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black w-fit",
                                 card.color === "emerald" ? "bg-emerald-500/10 text-emerald-600" :
                                     card.color === "rose" ? "bg-rose-500/10 text-rose-600" : "bg-emerald-500 text-white"
                             )}>
-                                {card.growth.includes("+") ? <ArrowUpRight className="h-3 w-3 md:h-4 md:w-4" /> : <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />}
-                                {card.growth} vs Last Month
+                                {card.growth.includes("+") ? <ArrowUpRight className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
+                                {card.growth} {t("finance.vsLastMonth")}
                             </div>
                         </div>
                     </motion.div>
                 ))}
             </div>
 
-            {/* Transactions */}
+            {/* Transactions Table */}
             <motion.div
                 variants={itemVariants}
-                className="bg-white dark:bg-slate-900 rounded-2xl md:rounded-[3rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden"
+                className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden"
             >
-                <div className="px-4 py-3 md:p-10 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <h3 className="text-base md:text-2xl font-black text-slate-900 dark:text-white">Recent Ledger</h3>
+                <div className="p-10 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">{t("finance.recentLedger")}</h3>
                     <div className="flex gap-2">
-                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                            <Filter className="h-4 w-4 text-slate-500" />
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                            <Filter className="h-5 w-5 text-slate-500" />
                         </div>
-                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                            <Calendar className="h-4 w-4 text-slate-500" />
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                            <Calendar className="h-5 w-5 text-slate-500" />
                         </div>
                     </div>
                 </div>
-
-                {/* Mobile: compact card list */}
-                <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                    <AnimatePresence>
-                        {transactions.map((t, idx) => (
-                            <motion.div
-                                key={t.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                            >
-                                {/* Icon */}
-                                <div className={cn(
-                                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                                    t.type === 'income' ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
-                                )}>
-                                    {t.type === 'income' ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                                </div>
-
-                                {/* Description + category */}
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
-                                    <span className="text-[10px] font-medium text-slate-400">{t.date}</span>
-                                </div>
-
-                                {/* Badge + amount */}
-                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                    <span className={cn(
-                                        "text-xs font-black",
-                                        t.type === 'income' ? "text-emerald-600" : "text-rose-600"
-                                    )} suppressHydrationWarning>
-                                        {t.type === 'income' ? '+' : '-'}₹{t.amount.toLocaleString()}
-                                    </span>
-                                    <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[9px] font-black text-slate-500 uppercase">
-                                        {t.category}
-                                    </span>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
-
-                {/* Desktop: full table */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
-                                <th className="px-10 py-6">Description</th>
-                                <th className="px-10 py-6">Category</th>
-                                <th className="px-10 py-6">Date</th>
-                                <th className="px-10 py-6 text-right">Amount</th>
+                                <th className="px-10 py-6">{t("finance.desc")}</th>
+                                <th className="px-10 py-6">{t("finance.category")}</th>
+                                <th className="px-10 py-6">{t("finance.date")}</th>
+                                <th className="px-10 py-6 text-right">{t("finance.amount")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -196,25 +155,25 @@ export default function FinancialsPage() {
                                         transition={{ delay: idx * 0.05 }}
                                         className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
                                     >
-                                        <td className="px-10 py-6">
+                                        <td className="px-10 py-8">
                                             <div className="flex items-center gap-4">
                                                 <div className={cn(
-                                                    "w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300",
+                                                    "w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300",
                                                     t.type === 'income' ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
                                                 )}>
-                                                    {t.type === 'income' ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
+                                                    {t.type === 'income' ? <ArrowDownLeft className="h-6 w-6" /> : <ArrowUpRight className="h-6 w-6" />}
                                                 </div>
-                                                <span className="font-bold text-base text-slate-800 dark:text-slate-200">{t.description}</span>
+                                                <span className="font-bold text-lg text-slate-800 dark:text-slate-200">{t.description}</span>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-6">
-                                            <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                        <td className="px-10 py-8">
+                                            <span className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                                 {t.category}
                                             </span>
                                         </td>
-                                        <td className="px-10 py-6 text-slate-400 dark:text-slate-600 font-medium text-sm">{t.date}</td>
+                                        <td className="px-10 py-8 text-slate-400 dark:text-slate-600 font-medium">{t.date}</td>
                                         <td className={cn(
-                                            "px-10 py-6 text-right font-black text-lg",
+                                            "px-10 py-8 text-right font-black text-xl",
                                             t.type === 'income' ? "text-emerald-600" : "text-rose-600"
                                         )} suppressHydrationWarning>
                                             {t.type === 'income' ? '+' : '-'}₹{t.amount.toLocaleString()}

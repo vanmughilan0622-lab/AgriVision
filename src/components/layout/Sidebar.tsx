@@ -7,7 +7,7 @@ import {
     Leaf, LayoutDashboard, ScanLine, Sprout, DollarSign, CloudSun,
     Settings, Menu, MessageSquare, BookOpen, Users, BarChart3, Truck, Globe, X, Activity
 } from "lucide-react";
-import { useState, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/lib/language-context";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -15,7 +15,7 @@ import { ActionCenterDrawer } from "@/components/ui/ActionCenterDrawer";
 import { History } from "lucide-react";
 
 const navItems = [
-    { key: "nav.dashboard", href: "/", icon: LayoutDashboard },
+    { key: "nav.dashboard", href: "/dashboard", icon: LayoutDashboard },
     { key: "nav.disease", href: "/disease-detection", icon: ScanLine },
     { key: "nav.crophealth", href: "/crop-health", icon: Activity },
     { key: "nav.cropsuggestion", href: "/crop-suggestion", icon: Sprout },
@@ -30,17 +30,32 @@ const navItems = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const [isOpen, setIsOpen] = useState(false);
+    const [isDesktopOpen, setIsDesktopOpen] = useState(true);
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [showLangPicker, setShowLangPicker] = useState(false);
     const { lang, setLang, t, languages } = useLanguage();
+
+    // Persist sidebar state
+    useEffect(() => {
+        const saved = localStorage.getItem("sidebarOpen");
+        if (saved !== null) {
+            setIsDesktopOpen(saved === "true");
+        }
+    }, []);
+
+    const toggleDesktopSidebar = () => {
+        const newState = !isDesktopOpen;
+        setIsDesktopOpen(newState);
+        localStorage.setItem("sidebarOpen", String(newState));
+    };
 
     return (
         <>
             {/* Mobile Header */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-safe-header pt-safe bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl border-b border-slate-200 dark:border-white/10 z-50 flex items-center px-4 justify-between">
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl border-b border-slate-200 dark:border-white/10 z-50 flex items-center px-4 justify-between">
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setIsOpen(!isOpen)}
+                        onClick={() => setIsMobileOpen(!isMobileOpen)}
                         className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm text-slate-700 dark:text-slate-300"
                     >
                         <Menu className="h-5 w-5" />
@@ -65,25 +80,23 @@ export function Sidebar() {
                 </div>
             </div>
             
-            <Suspense fallback={null}>
-                <ActionCenterDrawer />
-            </Suspense>
+            <ActionCenterDrawer />
 
             {/* Desktop Sidebar */}
             <motion.aside
-                initial={{ width: isOpen ? 240 : 80 }}
-                animate={{ width: isOpen ? 240 : 80 }}
+                initial={{ width: isDesktopOpen ? 240 : 80 }}
+                animate={{ width: isDesktopOpen ? 240 : 80 }}
                 className={cn(
-                    "hidden md:flex flex-col h-[100dvh] pt-safe pb-safe border-r border-white/10 bg-slate-950/40 backdrop-blur-2xl text-white sticky top-0 z-40",
-                    !isOpen && "items-center"
+                    "hidden md:flex flex-col h-screen border-r border-white/10 bg-slate-950/40 backdrop-blur-2xl text-white sticky top-0 z-40",
+                    !isDesktopOpen && "items-center"
                 )}
             >
                 {/* Header */}
                 <div className="h-20 flex items-center w-full shrink-0 border-b border-white/10 px-5 gap-3">
-                    <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-md transition-colors shrink-0">
+                    <button onClick={toggleDesktopSidebar} className="p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-md transition-colors shrink-0">
                         <Menu className="h-6 w-6" />
                     </button>
-                    {isOpen && (
+                    {isDesktopOpen && (
                         <motion.div 
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -105,15 +118,15 @@ export function Sidebar() {
                                 href={item.href}
                                 className={cn(
                                     "flex items-center gap-3 h-11 rounded-lg text-sm font-bold transition-colors relative group overflow-hidden whitespace-nowrap",
-                                    isOpen ? "px-3 w-full" : "px-0 w-11 justify-center mx-auto",
+                                    isDesktopOpen ? "px-3 w-full" : "px-0 w-11 justify-center mx-auto",
                                     isActive
                                         ? "bg-emerald-500/20 text-emerald-400"
                                         : "hover:bg-white/10 text-slate-300 hover:text-white"
                                 )}
                             >
                                 <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-emerald-400")} />
-                                {isOpen && <span>{t(item.key)}</span>}
-                                {!isOpen && (
+                                {isDesktopOpen && <span>{t(item.key)}</span>}
+                                {!isDesktopOpen && (
                                     <div className="absolute left-full ml-4 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
                                         {t(item.key)}
                                     </div>
@@ -124,17 +137,17 @@ export function Sidebar() {
                 </nav>
 
                 {/* Language Switcher */}
-                <div className={cn("px-3 pb-6 relative", !isOpen && "flex justify-center")}>
+                <div className={cn("px-3 pb-6 relative", !isDesktopOpen && "flex justify-center")}>
                     <button
                         id="sidebar-lang-toggle"
                         onClick={() => setShowLangPicker(!showLangPicker)}
                         className={cn(
                             "flex items-center gap-2 h-11 rounded-lg text-sm font-bold transition-colors hover:bg-white/10 text-slate-300 hover:text-white overflow-hidden whitespace-nowrap",
-                            isOpen ? "px-3 w-full" : "px-0 w-11 justify-center mx-auto"
+                            isDesktopOpen ? "px-3 w-full" : "px-0 w-11 justify-center mx-auto"
                         )}
                     >
                         <Globe className="h-5 w-5 shrink-0 text-emerald-600" />
-                        {isOpen && (
+                        {isDesktopOpen && (
                             <span className="flex items-center gap-2 flex-1">
                                 {t("nav.language")}
                                 <span className="ml-auto text-[10px] font-black bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-full uppercase">
@@ -184,13 +197,13 @@ export function Sidebar() {
 
             {/* Mobile Sidebar Overlay */}
             <AnimatePresence>
-                {isOpen && (
+                {isMobileOpen && (
                     <>
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setIsOpen(false)}
+                            onClick={() => setIsMobileOpen(false)}
                             className="md:hidden fixed inset-0 z-[55] bg-slate-950/20 backdrop-blur-sm"
                         />
                         <motion.div
@@ -200,8 +213,8 @@ export function Sidebar() {
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                             className="md:hidden fixed inset-y-0 left-0 w-64 bg-slate-950/90 backdrop-blur-2xl border-r border-white/10 z-[60] shadow-2xl flex flex-col text-white"
                         >
-                            <div className="p-6 pt-safe flex items-center gap-4 border-b border-white/10 shrink-0">
-                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-md -ml-2">
+                            <div className="p-6 flex items-center gap-4 border-b border-white/10 shrink-0">
+                                <button onClick={() => setIsMobileOpen(false)} className="p-2 hover:bg-white/10 rounded-md -ml-2">
                                     <Menu className="h-5 w-5 text-slate-300" />
                                 </button>
                                 <div className="flex items-center gap-2">
@@ -215,7 +228,7 @@ export function Sidebar() {
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    onClick={() => setIsOpen(false)}
+                                    onClick={() => setIsMobileOpen(false)}
                                     className={cn(
                                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-colors",
                                         pathname === item.href ? "bg-emerald-500/20 text-emerald-400" : "hover:bg-white/10 text-slate-300 hover:text-white"

@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Agrotech Resilience</string>
-    <string name="title_activity_main">Agrotech Resilience</string>
-    <string name="package_name">com.agrotech.resilience</string>
-    <string name="custom_url_scheme">com.agrotech.resilience</string>
-</resources>

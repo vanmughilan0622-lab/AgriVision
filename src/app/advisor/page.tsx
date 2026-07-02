@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { getDiagnosisHistory } from "@/app/actions/history-actions";
 import { useLanguage } from "@/lib/language-context";
 import { VoiceRecorder } from "@/components/ui/VoiceRecorder";
-import { chatWithHuggingFace } from "@/app/actions/chat-hf";
 
 interface Message {
     role: "user" | "assistant";
@@ -72,7 +71,7 @@ export default function AdvisorPage() {
     const [scanContext, setScanContext] = useState<string>("");
     const [playingIndex, setPlayingIndex] = useState<number | null>(null);
     const playingIndexRef = useRef<number | null>(null);
-    const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -84,16 +83,10 @@ export default function AdvisorPage() {
             }
         }
         fetchContext();
-
-        return () => {
-            if (typeof window !== "undefined" && window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-            }
-        };
     }, []);
 
     useEffect(() => {
-        const key = localStorage.getItem("huggingface_api_key");
+        const key = localStorage.getItem("hf_token");
         setApiKey(key);
         setLanguage(globalLang);
     }, [globalLang]);
@@ -109,38 +102,37 @@ export default function AdvisorPage() {
 
     const toggleAudio = async (text: string, index: number) => {
         try {
-            // Stop any currently playing audio
-            if (audioPlayerRef.current) {
-                audioPlayerRef.current.pause();
-                audioPlayerRef.current.src = "";
-                audioPlayerRef.current = null;
+            // Initialize audio element once to comply with mobile autoplay rules
+            if (!audioRef.current) {
+                audioRef.current = new Audio();
             }
+            const audio = audioRef.current;
 
             if (playingIndexRef.current === index) {
+                audio.pause();
+                audio.removeAttribute('src');
                 setPlayingIndex(null);
                 playingIndexRef.current = null;
                 return;
             }
 
+            audio.pause();
+            audio.removeAttribute('src');
+            
             setPlayingIndex(index);
             playingIndexRef.current = index;
 
-            const targetLang = language || 'en';
-            const ttsLang = targetLang.split('-')[0];
-
-            // Split text into chunks for TTS limit (max ~200 chars)
-            const rawChunks = text.match(/[^.!?\n।]+[.!?\n।]*/g) || [text];
+            // Chunk the text to prevent TTS from failing on long strings
+            const chunks = text.match(/[^.!?\n]+[.!?\n]+/g) || [text];
             const smallChunks: string[] = [];
-            for (const chunk of rawChunks) {
-                const trimmed = chunk.trim();
-                if (!trimmed) continue;
-                if (trimmed.length <= 180) {
-                    smallChunks.push(trimmed);
+            for (const chunk of chunks) {
+                if (chunk.length <= 150) {
+                    if (chunk.trim()) smallChunks.push(chunk.trim());
                 } else {
-                    const words = trimmed.split(' ');
+                    const words = chunk.split(' ');
                     let temp = "";
                     for (const w of words) {
-                        if (temp.length + w.length > 180) {
+                        if (temp.length + w.length > 150) {
                             if (temp.trim()) smallChunks.push(temp.trim());
                             temp = w + " ";
                         } else {
@@ -151,52 +143,41 @@ export default function AdvisorPage() {
                 }
             }
 
-            if (smallChunks.length === 0) {
-                setPlayingIndex(null);
-                playingIndexRef.current = null;
-                return;
-            }
+            const targetLang = language || 'en';
+            const ttsLang = targetLang.split('-')[0];
 
-            let currentChunkIdx = 0;
-            const audio = new Audio();
-            audioPlayerRef.current = audio;
-
-            const playNext = () => {
-                // If user stopped or we finished
-                if (currentChunkIdx >= smallChunks.length || playingIndexRef.current !== index) {
-                    if (playingIndexRef.current === index) {
-                        setPlayingIndex(null);
-                        playingIndexRef.current = null;
-                    }
-                    return;
-                }
-                const chunk = smallChunks[currentChunkIdx];
-                const url = `/api/tts?text=${encodeURIComponent(chunk)}&lang=${ttsLang}`;
-                audio.src = url;
-                audio.play().catch(e => {
-                    console.error("Audio playback failed:", e);
+            const playNext = (chunkIndex: number) => {
+                if (playingIndexRef.current !== index || chunkIndex >= smallChunks.length) {
                     setPlayingIndex(null);
                     playingIndexRef.current = null;
+                    return;
+                }
+                
+                const url = `/api/tts?lang=${ttsLang}&text=${encodeURIComponent(smallChunks[chunkIndex])}`;
+                audio.src = url;
+                
+                audio.onended = () => playNext(chunkIndex + 1);
+                audio.onerror = (e) => {
+                    console.error("Audio Playback Error:", e);
+                    playNext(chunkIndex + 1);
+                };
+                
+                audio.play().catch(e => {
+                    if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
+                        console.error("Audio Play Error:", e);
+                        playNext(chunkIndex + 1);
+                    }
                 });
             };
+            
+            playNext(0);
 
-            audio.onended = () => {
-                currentChunkIdx++;
-                playNext();
-            };
-
-            audio.onerror = () => {
-                console.error("Audio streaming error");
+        } catch (err) {
+            console.error('Failed to play audio', err);
+            if (playingIndexRef.current === index) {
                 setPlayingIndex(null);
                 playingIndexRef.current = null;
-            };
-
-            playNext();
-
-        } catch (e) {
-            console.error("TTS Error:", e);
-            setPlayingIndex(null);
-            playingIndexRef.current = null;
+            }
         }
     };
 
@@ -213,22 +194,43 @@ export default function AdvisorPage() {
         setError(null);
 
         try {
-            const response = await chatWithHuggingFace(
-                newMessages.map(m => ({ role: m.role, content: m.content })),
-                apiKey || undefined,
-                language,
-                scanContext
-            );
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    history: newMessages.map(m => ({ role: m.role, content: m.content })),
+                    language,
+                    context: scanContext,
+                    apiKey
+                })
+            });
 
-            if (!response) throw new Error("No response from the advisor.");
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || "Failed to connect to the advisor.");
+            }
 
-            if (response.error) {
-                setError(response.error);
-            } else if (response.content) {
-                setMessages(prev => [...prev, { role: "assistant", content: cleanMarkdown(response.content as string) }]);
-                if (isVoiceInput) {
-                    toggleAudio(cleanMarkdown(response.content as string), newMessages.length);
-                }
+            if (!response.body) throw new Error("No response body.");
+
+            setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let assistantMessage = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                assistantMessage += chunk;
+                setMessages(prev => {
+                    const latest = [...prev];
+                    latest[latest.length - 1] = { role: "assistant", content: cleanMarkdown(assistantMessage) };
+                    return latest;
+                });
+            }
+
+            if (isVoiceInput) {
+                toggleAudio(cleanMarkdown(assistantMessage), newMessages.length);
             }
         } catch (err: any) {
             setError(err.message || "Failed to connect. Please try again.");
@@ -238,7 +240,7 @@ export default function AdvisorPage() {
     };
 
     return (
-        <div className="fixed inset-0 md:relative md:inset-auto flex flex-col p-3 md:p-6 max-w-4xl md:mx-auto gap-3 md:gap-4 md:h-[100dvh] w-full md:w-auto overflow-hidden z-10 bg-background md:bg-transparent mt-16 md:mt-0">
+        <div className="flex flex-col p-4 md:p-6 max-w-4xl mx-auto gap-4 h-[calc(100dvh-4rem)] md:h-[100dvh] w-full">
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
@@ -246,7 +248,7 @@ export default function AdvisorPage() {
                         <Bot className="h-6 w-6 text-emerald-600" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-slate-900 dark:text-white">{t("advisor.ai")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">{t("advisor.advisor")}</span></h1>
+                        <h1 className="text-2xl font-black text-slate-900 dark:text-white">{t("advisor.title")}</h1>
                         <p className="text-xs text-slate-400 font-medium">{t("advisor.subtitle")}</p>
                     </div>
                 </div>
@@ -269,7 +271,7 @@ export default function AdvisorPage() {
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-black text-slate-700 dark:text-slate-300">{t("advisor.ready")}</h3>
-                                    <p className="text-slate-400 font-medium mt-1 text-sm">{t("advisor.askAbout")}</p>
+                                    <p className="text-slate-400 font-medium mt-1 text-sm">{t("advisor.desc")}</p>
                                 </div>
                             </motion.div>
                         )}
@@ -308,7 +310,7 @@ export default function AdvisorPage() {
                                                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] uppercase tracking-wider font-black text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
                                             >
                                                 {playingIndex === idx ? (
-                                                    <><VolumeX className="w-3.5 h-3.5" /> {t("advisor.stopDictating")}</>
+                                                    <><VolumeX className="w-3.5 h-3.5" /> {t("advisor.stop")}</>
                                                 ) : (
                                                     <><Volume2 className="w-3.5 h-3.5" /> {t("advisor.readAloud")}</>
                                                 )}
@@ -343,7 +345,7 @@ export default function AdvisorPage() {
 
                 {/* Quick prompts */}
                 <div className="px-5 pb-3 flex gap-2 flex-wrap justify-center border-t border-slate-50 dark:border-slate-800 pt-3">
-                    {[t("advisor.qp1"), t("advisor.qp2"), t("advisor.qp3"), t("advisor.qp4"), t("advisor.qp5")].map(p => (
+                    {quickPrompts.map(p => (
                         <button
                             key={p}
                             onClick={() => handleSubmit(undefined, p)}

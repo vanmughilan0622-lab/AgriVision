@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from "@/lib/language-context";
 
 export default function OnboardingPage() {
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -31,13 +33,11 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4">
       <div className="max-w-md w-full bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-        <h1 className="text-2xl font-bold text-white mb-6 text-center">
-          AgriVision Onboarding
-        </h1>
+        <h1 className="text-2xl font-bold text-white mb-6 text-center">{t("onboard.title")}</h1>
 
         {step === 1 && (
           <div className="space-y-4">
-            <h2 className="text-lg text-neutral-200">Step 1: Phone Verification</h2>
+            <h2 className="text-lg text-neutral-200">{t("onboard.step1")}</h2>
             <input 
               type="tel" 
               placeholder="+91 XXXXXXXXXX" 
@@ -48,15 +48,13 @@ export default function OnboardingPage() {
             <button 
               onClick={handleSendOtp}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition-colors"
-            >
-              Send OTP
-            </button>
+            >{t("onboard.sendOtp")}</button>
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-4">
-            <h2 className="text-lg text-neutral-200">Step 2: Enter OTP</h2>
+            <h2 className="text-lg text-neutral-200">{t("onboard.step2")}</h2>
             <input 
               type="text" 
               placeholder="XXXXXX" 
@@ -67,39 +65,33 @@ export default function OnboardingPage() {
             <button 
               onClick={handleVerifyOtp}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition-colors"
-            >
-              Verify
-            </button>
+            >{t("onboard.verify")}</button>
           </div>
         )}
 
         {step === 3 && (
           <div className="space-y-4">
-            <h2 className="text-lg text-neutral-200">Step 3: Aadhar & Data Consent</h2>
+            <h2 className="text-lg text-neutral-200">{t("onboard.step3")}</h2>
             <div className="bg-neutral-800 p-4 rounded-lg text-sm text-neutral-400 h-40 overflow-y-auto">
-              <p>By using AgriVision, you agree to share anonymized farm data...</p>
-              <p className="mt-2 text-red-400">Note: Your raw Aadhar number is never stored.</p>
+              <p>{t("onboard.consentText")}</p>
+              <p className="mt-2 text-red-400">{t("onboard.consentNote")}</p>
             </div>
             <button 
               onClick={handleConsent}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition-colors"
-            >
-              I Agree
-            </button>
+            >{t("onboard.agree")}</button>
           </div>
         )}
 
         {step === 4 && (
           <div className="space-y-4 text-center">
             <div className="text-5xl mb-4">🌾</div>
-            <h2 className="text-xl font-medium text-white">Setup Complete!</h2>
-            <p className="text-neutral-400">Your farm is ready. Let's start tracking.</p>
+            <h2 className="text-xl font-medium text-white">{t("onboard.completeTitle")}</h2>
+            <p className="text-neutral-400">{t("onboard.completeDesc")}</p>
             <button 
               onClick={handleComplete}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition-colors mt-6"
-            >
-              Go to Dashboard
-            </button>
+            >{t("onboard.goDash")}</button>
           </div>
         )}
       </div>

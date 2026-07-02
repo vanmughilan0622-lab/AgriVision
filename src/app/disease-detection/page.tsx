@@ -2,20 +2,21 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, CheckCircle2, ShieldCheck, Sparkles, RefreshCw, AlertTriangle } from 'lucide-react';
-import { detectDiseaseFromImage } from '@/app/actions/detect-disease';
+import { Camera, CheckCircle2, ShieldCheck, Sparkles, RefreshCw, AlertTriangle, UploadCloud } from 'lucide-react';
+import { getAiKey, saveDiagnosis } from '@/app/actions/detect-disease';
+import { chatWithValya } from '@/lib/valya-client';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/language-context';
 
 export default function DiseaseDetectionPage() {
-  const { t } = useLanguage();
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { t, lang } = useLanguage();
 
   const farmSectors = [
     "Sector 1 - Corn",
@@ -40,21 +41,51 @@ export default function DiseaseDetectionPage() {
       });
       
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      const MAX_SIZE = 512;
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, width, height);
       }
       
       const blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.95);
+        canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.5);
       });
 
-      const formData = new FormData();
-      formData.append("image", blob, "normalized.jpg");
+            const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      const base64Data = await new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]); // remove data:image/jpeg;base64,
+        };
+      });
       
-      const result = await detectDiseaseFromImage(formData);
+      const geminiKey = localStorage.getItem("gemini_api_key");
+      const response = await fetch('/api/analyze', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ base64Image: base64Data, apiKey: geminiKey, lang })
+      });
+      
+      const result = await response.json();
+      
       if (result.success && result.data) {
         setAiResult(result.data);
       } else {
@@ -89,10 +120,10 @@ export default function DiseaseDetectionPage() {
         <div className="space-y-2">
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
             <ShieldCheck className="h-10 w-10 text-emerald-500 fill-emerald-500" />
-            {t("disease.pageTitle")}
+            {t("disease.heading")}
           </h1>
           <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">
-            {t("disease.pageSubtitle")}
+            {t("disease.desc")}
           </p>
         </div>
         <Link 
@@ -124,51 +155,89 @@ export default function DiseaseDetectionPage() {
           >
             <option value="" disabled>{t("disease.selectPlaceholder")}</option>
             {farmSectors.map(sector => (
-              <option key={sector} value={sector}>{t(`sector.${sector.split(" - ")[0]}`)} - {t(`crop.${sector.split(" - ")[1]}`)}</option>
+              <option key={sector} value={sector}>{sector}</option>
             ))}
           </select>
         </div>
 
         <div className="mb-8">
           <label className="block text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-4">
-            {t("disease.uploadCropImage")} <span className="text-red-500">*</span>
+            {t("disease.uploadImage")} <span className="text-red-500">*</span>
           </label>
-          <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-[2rem] p-10 flex flex-col items-center justify-center text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group relative overflow-hidden block w-full">
+          <div className="w-full">
             {photo ? (
-              <div className="flex flex-col items-center gap-3 w-full">
-                {photoPreview && (
-                  <div className="relative w-full max-w-sm h-64 rounded-2xl overflow-hidden shadow-sm mb-2 border border-slate-200 dark:border-slate-700">
-                    <img src={photoPreview} alt="Uploaded crop" className="w-full h-full object-cover" />
-                    <div className="absolute top-3 right-3 p-1.5 bg-emerald-500 text-white rounded-full shadow-md">
-                      <CheckCircle2 className="w-5 h-5" />
+              <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-[2rem] p-10 flex flex-col items-center justify-center text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group relative overflow-hidden block w-full">
+                <div className="flex flex-col items-center gap-3 w-full">
+                  {photoPreview && (
+                    <div className="relative w-full max-w-sm h-64 rounded-2xl overflow-hidden shadow-sm mb-2 border border-slate-200 dark:border-slate-700">
+                      <img src={photoPreview} alt="Uploaded crop" className="w-full h-full object-cover" />
+                      <div className="absolute top-3 right-3 p-1.5 bg-emerald-500 text-white rounded-full shadow-md">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
                     </div>
-                  </div>
-                )}
-                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 max-w-[200px] truncate">{photo.name}</span>
-                <span className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline underline-offset-4 mt-1">{t("disease.tapToChange")}</span>
-              </div>
-            ) : (
-              <>
-                <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-3xl mb-4 group-hover:scale-110 transition-transform">
-                  <Camera className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                  )}
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 max-w-[200px] truncate">{photo.name}</span>
+                  <span className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline underline-offset-4 mt-1">{t("disease.tapToChange")}</span>
                 </div>
-                <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{t("disease.tapToTake")}</span>
-              </>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      setPhoto(file);
+                      setPhotoPreview(URL.createObjectURL(file));
+                      setAiResult(null);
+                    }
+                  }}
+                />
+              </label>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-4 w-full">
+                <label className="flex-1 border-2 border-dashed border-emerald-200 dark:border-emerald-900/30 rounded-[2rem] p-10 flex flex-col items-center justify-center text-center hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer group">
+                  <div className="p-4 bg-emerald-100 dark:bg-emerald-900/40 rounded-3xl mb-4 group-hover:scale-110 transition-transform">
+                    <Camera className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{t("disease.takePhoto")}</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment"
+                    className="hidden" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        setPhoto(file);
+                        setPhotoPreview(URL.createObjectURL(file));
+                        setAiResult(null);
+                      }
+                    }}
+                  />
+                </label>
+
+                <label className="flex-1 border-2 border-dashed border-blue-200 dark:border-blue-900/30 rounded-[2rem] p-10 flex flex-col items-center justify-center text-center hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group">
+                  <div className="p-4 bg-blue-100 dark:bg-blue-900/40 rounded-3xl mb-4 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{t("disease.uploadFile")}</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        setPhoto(file);
+                        setPhotoPreview(URL.createObjectURL(file));
+                        setAiResult(null);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
             )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  const file = e.target.files[0];
-                  setPhoto(file);
-                  setPhotoPreview(URL.createObjectURL(file));
-                  setAiResult(null); // reset result
-                }
-              }}
-            />
-          </label>
+          </div>
         </div>
 
         {!aiResult ? (
@@ -183,7 +252,7 @@ export default function DiseaseDetectionPage() {
               ) : (
                 <Sparkles className="w-8 h-8 group-hover:scale-110 transition-transform" />
               )}
-              <span className="text-lg">{t("disease.analyze")}</span>
+              <span className="text-lg">{t("disease.analyzeBtn")}</span>
             </button>
           </div>
         ) : (
@@ -207,12 +276,12 @@ export default function DiseaseDetectionPage() {
                     aiResult.severity === "Medium" ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" :
                     "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                   )}>
-                    {t("disease.severity")} {t(`status.${aiResult.severity}`) || aiResult.severity}
+                    {t("disease.severityLbl")}{aiResult.severity}
                   </div>
                 </div>
 
                 <div className="bg-white dark:bg-slate-950 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-                   <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t("disease.description")}</h4>
+                   <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t("disease.descriptionLbl")}</h4>
                    <p className="text-slate-600 dark:text-slate-300">{aiResult.description}</p>
                 </div>
 
@@ -255,11 +324,11 @@ export default function DiseaseDetectionPage() {
 
                 <div className="grid md:grid-cols-2 gap-4 mt-6">
                   <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-6 border border-amber-200 dark:border-amber-900/50">
-                    <h4 className="font-bold text-amber-900 dark:text-amber-400 mb-2">{t("disease.recommendedTreatment")}</h4>
+                    <h4 className="font-bold text-amber-900 dark:text-amber-400 mb-2">{t("disease.recTreatment")}</h4>
                     <p className="text-amber-800 dark:text-amber-200/80 text-sm">{aiResult.recommendedTreatment}</p>
                   </div>
                   <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-900/50">
-                    <h4 className="font-bold text-emerald-900 dark:text-emerald-400 mb-2">{t("disease.preventionTips")}</h4>
+                    <h4 className="font-bold text-emerald-900 dark:text-emerald-400 mb-2">{t("disease.prevTips")}</h4>
                     <p className="text-emerald-800 dark:text-emerald-200/80 text-sm">{aiResult.preventionTips}</p>
                   </div>
                 </div>
@@ -267,7 +336,7 @@ export default function DiseaseDetectionPage() {
                 {aiResult.tasks && aiResult.tasks.length > 0 && (
                   <div className="mt-8 relative">
                     <div className="absolute left-9 top-14 bottom-6 w-0.5 bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
-                    <h4 className="font-black text-slate-900 dark:text-white mb-6 uppercase tracking-wider text-xs">{t("disease.aiTimeline")}</h4>
+                    <h4 className="font-black text-slate-900 dark:text-white mb-6 uppercase tracking-wider text-xs">{t("disease.timeline")}</h4>
                     <div className="space-y-4 relative z-10">
                       
                       {/* Timeline Origin */}
@@ -276,7 +345,7 @@ export default function DiseaseDetectionPage() {
                           <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></div>
                         </div>
                         <div className="flex-1">
-                          <h5 className="font-bold text-sm text-indigo-900 dark:text-indigo-300">{t("disease.todayDiagnosis")}</h5>
+                          <h5 className="font-bold text-sm text-indigo-900 dark:text-indigo-300">{t("disease.todayDiag")}</h5>
                           <p className="text-xs text-indigo-800/70 dark:text-indigo-300/70 mt-1">{aiResult.diseaseName} {t("disease.detected")}</p>
                         </div>
                       </div>
@@ -295,7 +364,7 @@ export default function DiseaseDetectionPage() {
                           <div className="ml-auto text-right shrink-0">
                             <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-slate-500">{task.category}</span>
                             <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-2">
-                              {days === 0 ? t("disease.today") : days === 1 ? t("disease.tomorrow") : t("disease.inDays").replace("{days}", days.toString())}
+                              {days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} Days`}
                             </p>
                           </div>
                         </div>
@@ -306,7 +375,7 @@ export default function DiseaseDetectionPage() {
                 )}
                 
                 <div className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center justify-between pt-4 border-t border-indigo-200 dark:border-indigo-800 mt-6">
-                  <span>{t("disease.aiConfidence")} {aiResult.confidenceScore.toFixed(1)}%</span>
+                  <span>{t("disease.confidenceScore")}{aiResult.confidenceScore.toFixed(1)}%</span>
                   <Link href="/history" className="text-indigo-600 dark:text-indigo-400 hover:underline">
                     {t("disease.viewInHistory")} &rarr;
                   </Link>

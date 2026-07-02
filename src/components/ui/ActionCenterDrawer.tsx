@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { History, X, Sprout, Droplets, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useLanguage } from "@/lib/language-context";
 
-export function ActionCenterDrawer() {
+function ActionCenterDrawerContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -14,6 +15,7 @@ export function ActionCenterDrawer() {
   const isOpen = searchParams.get('action_center') === 'true';
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
   const [activeDrawerTab, setActiveDrawerTab] = useState<"timeline" | "tasks">("timeline");
+  const { t } = useLanguage();
 
   const closeDrawer = () => {
     router.push(pathname, { scroll: false });
@@ -55,8 +57,8 @@ export function ActionCenterDrawer() {
                     <History className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white">Action Center</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">AI Memory & Task Manager</p>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white">{t("action.title")}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">{t("action.subtitle")}</p>
                   </div>
                 </div>
                 <button onClick={closeDrawer} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
@@ -69,13 +71,13 @@ export function ActionCenterDrawer() {
                   onClick={() => setActiveDrawerTab("timeline")}
                   className={cn("flex-1 py-2 text-sm font-black rounded-lg transition-all", activeDrawerTab === "timeline" ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300")}
                 >
-                  Farm Memory
+                  {t("action.memory")}
                 </button>
                 <button
                   onClick={() => setActiveDrawerTab("tasks")}
                   className={cn("flex-1 py-2 text-sm font-black rounded-lg transition-all", activeDrawerTab === "tasks" ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300")}
                 >
-                  Upcoming Tasks
+                  {t("action.tasks")}
                 </button>
               </div>
             </div>
@@ -92,7 +94,7 @@ export function ActionCenterDrawer() {
                     return (
                       <div className="text-center py-12">
                         <p className="text-sm font-bold text-slate-400">
-                          {activeDrawerTab === "timeline" ? "No history available yet." : "No upcoming tasks scheduled."}
+                          {activeDrawerTab === "timeline" ? t("action.noHistory") : t("action.noTasks")}
                         </p>
                       </div>
                     );
@@ -117,22 +119,22 @@ export function ActionCenterDrawer() {
                       )}>
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
                           <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                            {event.title}
-                            {event.type === 'task' && event.status === 'Completed' && <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-[9px] text-emerald-700 dark:text-emerald-400 font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800/50">Auto</span>}
+                            {t(event.title)}
+                            {event.type === 'task' && event.status === 'Completed' && <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-[9px] text-emerald-700 dark:text-emerald-400 font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800/50">{t("action.auto")}</span>}
                           </h4>
                           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider shrink-0">
-                            {activeDrawerTab === "tasks" && "Due: "}{new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            {activeDrawerTab === "tasks" && t("action.due")}{new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{event.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{t(event.description)}</p>
                         
                         {activeDrawerTab === "tasks" && (
                           <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
                             <span className="text-[10px] uppercase tracking-wider font-black px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 block">
-                              {event.category}
+                              {t("category." + event.category.toLowerCase())}
                             </span>
                             <span className="text-xs font-bold text-indigo-500 flex items-center gap-1">
-                              {event.status === "Pending" ? "Scheduled" : event.status}
+                              {event.status === "Pending" ? t("action.scheduled") : event.status === "Completed" ? t("action.completed") : event.status}
                             </span>
                           </div>
                         )}
@@ -146,5 +148,13 @@ export function ActionCenterDrawer() {
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+export function ActionCenterDrawer() {
+  return (
+    <Suspense fallback={null}>
+      <ActionCenterDrawerContent />
+    </Suspense>
   );
 }

@@ -17,12 +17,25 @@ export async function getWeather(lat: number, lon: number) {
 
 export async function getCoordinates(query: string) {
   try {
-    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1`);
+    const cleanQuery = query.replace(/\([^)]*\)/g, '').trim();
+    let res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanQuery)}&count=1`);
     if (!res.ok) throw new Error("Geocoding failed");
-    const data = await res.json();
+    let data = await res.json();
     if (data.results && data.results.length > 0) {
       return { success: true, lat: data.results[0].latitude, lon: data.results[0].longitude };
     }
+
+    const firstWord = cleanQuery.split(' ')[0];
+    if (firstWord && firstWord !== cleanQuery) {
+        res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(firstWord)}&count=1`);
+        if (res.ok) {
+            data = await res.json();
+            if (data.results && data.results.length > 0) {
+                return { success: true, lat: data.results[0].latitude, lon: data.results[0].longitude };
+            }
+        }
+    }
+
     return { success: false, error: "Not found" };
   } catch (error: any) {
     return { success: false, error: error.message };

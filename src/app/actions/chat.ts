@@ -1,17 +1,14 @@
 "use server";
 
-import OpenAI from "openai";
-
 export async function chatWithGemini(
     history: { role: "user" | "assistant"; content: string }[],
     apiKey: string
 ) {
     try {
-        if (!apiKey) {
-            return { error: "API Key is missing. Please configure it in Settings." };
+        const hfToken = apiKey || process.env.HUGGINGFACE_TOKEN;
+        if (!hfToken) {
+            return { error: "Token is missing. Please configure your Hugging Face Token in Settings." };
         }
-
-        const openai = new OpenAI({ apiKey });
 
         if (history.length === 0) {
             return { error: "No message history provided." };
@@ -24,35 +21,51 @@ export async function chatWithGemini(
             ...history
         ];
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+        const payload = {
+            model: "meta-llama/Meta-Llama-3-8B-Instruct",
             messages: messages,
             max_tokens: 1000,
+        };
+
+        const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${hfToken}`
+            },
+            body: JSON.stringify(payload)
         });
 
-        const text = response.choices[0]?.message?.content;
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`Hugging Face API Error: ${response.status} ${err}`);
+        }
+
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content;
 
         if (!text) {
-            throw new Error("No response text received from OpenAI.");
+            throw new Error("No response text received from Hugging Face.");
         }
 
         return { content: text };
 
     } catch (error: any) {
-        console.error("OpenAI Chat Error:", error);
+        console.error("Hugging Face Chat Error:", error);
 
         const isAuthError =
             error.status === 401 ||
             error.status === 403 ||
+            error.message?.toLowerCase().includes("unauthorized") ||
             error.message?.toLowerCase().includes("invalid api key") ||
-            error.message?.toLowerCase().includes("incorrect api key");
+            error.message?.toLowerCase().includes("authentication failed");
 
         if (isAuthError) {
-            return { error: "Authentication failed. Please verify your OpenAI API Key in Settings." };
+            return { error: "Authentication failed. Please verify your Hugging Face Token in Settings." };
         }
 
         if (error.status === 404) {
-            return { error: "Model availability error. The requested OpenAI model might be unavailable for your account." };
+            return { error: "Model availability error. The requested model might be unavailable." };
         }
 
         return { error: error.message || "An unexpected error occurred." };

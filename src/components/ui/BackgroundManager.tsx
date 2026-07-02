@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 const backgrounds: Record<string, string> = {
-    "/": "/bg/dashboard.png",
+    "/dashboard": "/bg/dashboard.png",
     "/disease-detection": "/bg/disease.png",
     "/crop-health": "/bg/health.png",
     "/crop-suggestion": "/bg/suggestion.png",
@@ -20,6 +20,10 @@ const backgrounds: Record<string, string> = {
 
 export function BackgroundManager() {
     const pathname = usePathname();
+    
+    // Do not render wallpaper on the landing page, it has its own styling
+    if (pathname === "/") return null;
+
     const bgImage = backgrounds[pathname] || "/bg/generic.png";
 
     return (

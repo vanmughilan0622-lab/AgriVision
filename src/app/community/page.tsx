@@ -17,6 +17,7 @@ import {
     Tag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
 
 const languages: { code: string; label: string }[] = [
     { code: "en", label: "English" },
@@ -126,6 +127,7 @@ const itemVariants: any = {
 };
 
 export default function CommunityPage() {
+    const { t } = useLanguage();
     const [questions, setQuestions] = useState<Question[]>(initialQuestions);
     const [search, setSearch] = useState("");
     const [langFilter, setLangFilter] = useState("all");
@@ -229,15 +231,8 @@ export default function CommunityPage() {
                     <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
                         <div className="p-3 bg-blue-500/10 rounded-2xl">
                             <Users className="h-9 w-9 text-blue-600" />
-                        </div>
-                        Community{" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-400">
-                            Q&amp;A
-                        </span>
-                    </h1>
-                    <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">
-                        Ask, share, and learn from farmers and agricultural experts in your language.
-                    </p>
+                        </div>{t("comm.title")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-400">{t("comm.qa")}</span></h1>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">{t("comm.subtitle")}</p>
                 </div>
                 <motion.button
                     id="ask-question-btn"
@@ -246,9 +241,7 @@ export default function CommunityPage() {
                     onClick={() => setShowAskModal(true)}
                     className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black shadow-lg shadow-emerald-600/20 hover:bg-emerald-500 transition-colors shrink-0"
                 >
-                    <Plus className="h-5 w-5" />
-                    Ask Question
-                </motion.button>
+                    <Plus className="h-5 w-5" />{t("comm.askBtn")}</motion.button>
             </motion.div>
 
             {/* Filters */}
@@ -259,7 +252,7 @@ export default function CommunityPage() {
                         id="community-search"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search questions or tags..."
+                        placeholder={t("comm.search")}
                         className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium"
                     />
                 </div>
@@ -271,7 +264,7 @@ export default function CommunityPage() {
                         onChange={(e) => setLangFilter(e.target.value)}
                         className="pl-11 pr-8 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-bold appearance-none cursor-pointer"
                     >
-                        <option value="all">All Languages</option>
+                        <option value="all">{t("comm.allLangs")}</option>
                         {languages.map((l) => (
                             <option key={l.code} value={l.code}>{l.label}</option>
                         ))}
@@ -330,7 +323,7 @@ export default function CommunityPage() {
                                             </span>
                                         </div>
 
-                                        <p className="text-xs text-slate-400 font-medium">Asked by <span className="font-bold text-slate-600 dark:text-slate-300">{q.author}</span></p>
+                                        <p className="text-xs text-slate-400 font-medium">{t("comm.askedBy")} <span className="font-bold text-slate-600 dark:text-slate-300">{q.author}</span></p>
                                     </div>
 
                                     <div className="flex items-center gap-2 shrink-0">
@@ -363,7 +356,7 @@ export default function CommunityPage() {
                                         {q.answers.length > 0 && (
                                             <div className="px-8 space-y-4 pb-4">
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                    {q.answers.length} Answer{q.answers.length !== 1 ? "s" : ""}
+                                                    {q.answers.length} {t("comm.answers")}
                                                 </p>
                                                 {q.answers.map((a) => (
                                                     <div key={a.id} className={cn("flex gap-4 p-5 rounded-2xl border", a.isExpert ? "bg-emerald-500/5 border-emerald-500/20" : "bg-slate-50 dark:bg-slate-950/50 border-slate-100 dark:border-slate-800")}>
@@ -382,8 +375,7 @@ export default function CommunityPage() {
                                                                 <span className="text-sm font-black text-slate-900 dark:text-white">{a.author}</span>
                                                                 {a.isExpert && (
                                                                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
-                                                                        <ShieldCheck className="h-2.5 w-2.5" />
-                                                                        Expert · {a.role}
+                                                                        <ShieldCheck className="h-2.5 w-2.5" />{t("comm.expert")} · {a.role}
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -402,16 +394,14 @@ export default function CommunityPage() {
                                                     onClick={() => toggleAnswerBox(q.id)}
                                                     className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-500 transition-colors"
                                                 >
-                                                    <Plus className="h-4 w-4" />
-                                                    Add Answer
-                                                </button>
+                                                    <Plus className="h-4 w-4" />{t("comm.addAnswer")}</button>
                                             ) : (
                                                 <div className="space-y-3">
                                                     <textarea
                                                         id={`answer-input-${q.id}`}
                                                         value={answerInputs[q.id] || ""}
                                                         onChange={(e) => setAnswerInputs((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                                                        placeholder="Write your answer here..."
+                                                        placeholder={t("comm.writeAnswer")}
                                                         rows={3}
                                                         className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium resize-none"
                                                     />
@@ -421,15 +411,11 @@ export default function CommunityPage() {
                                                             onClick={() => submitAnswer(q.id)}
                                                             className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-500 transition-colors"
                                                         >
-                                                            <Send className="h-3.5 w-3.5" />
-                                                            Post Answer
-                                                        </button>
+                                                            <Send className="h-3.5 w-3.5" />{t("comm.postAnswer")}</button>
                                                         <button
                                                             onClick={() => toggleAnswerBox(q.id)}
                                                             className="px-4 py-2 rounded-xl text-xs font-black text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                                        >
-                                                            Cancel
-                                                        </button>
+                                                        >{t("comm.cancel")}</button>
                                                     </div>
                                                 </div>
                                             )}
@@ -458,7 +444,7 @@ export default function CommunityPage() {
                             className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 w-full max-w-lg p-8 space-y-6"
                         >
                             <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-black text-slate-900 dark:text-white">Ask a Question</h2>
+                                <h2 className="text-2xl font-black text-slate-900 dark:text-white">{t("comm.askModalTitle")}</h2>
                                 <button
                                     id="close-ask-modal"
                                     onClick={() => setShowAskModal(false)}
@@ -470,29 +456,29 @@ export default function CommunityPage() {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Title</label>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t("comm.titleLabel")}</label>
                                     <input
                                         id="new-question-title"
                                         value={newQ.title}
                                         onChange={(e) => setNewQ((p) => ({ ...p, title: e.target.value }))}
-                                        placeholder="What's your farming question?"
+                                        placeholder={t("comm.titlePh")}
                                         className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Details</label>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t("comm.detailsLabel")}</label>
                                     <textarea
                                         id="new-question-body"
                                         value={newQ.body}
                                         onChange={(e) => setNewQ((p) => ({ ...p, body: e.target.value }))}
-                                        placeholder="Describe your problem in detail..."
+                                        placeholder={t("comm.detailsPh")}
                                         rows={4}
                                         className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium resize-none"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tags (comma separated)</label>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t("comm.tagsLabel")}</label>
                                         <input
                                             id="new-question-tags"
                                             value={newQ.tags}
@@ -502,7 +488,7 @@ export default function CommunityPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Language</label>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t("comm.langLabel")}</label>
                                         <select
                                             id="new-question-language"
                                             value={newQ.language}
@@ -521,9 +507,7 @@ export default function CommunityPage() {
                                 id="submit-question-btn"
                                 onClick={submitQuestion}
                                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-sm hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-600/20"
-                            >
-                                Post Question
-                            </button>
+                            >{t("comm.postQuestion")}</button>
                         </motion.div>
                     </motion.div>
                 )}

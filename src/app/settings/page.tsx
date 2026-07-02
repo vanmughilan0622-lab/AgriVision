@@ -1,10 +1,12 @@
 "use client";
 
-import { Sun, Bell, User, Key, Save, ShieldCheck, Sparkles, Moon, Smartphone, HelpCircle, Languages } from "lucide-react";
+import { Sun, Bell, User, Key, Save, ShieldCheck, Sparkles, Moon, Smartphone, HelpCircle, Languages, ChevronRight, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
+import { useRouter } from "next/navigation";
+import { logout } from "@/app/actions/auth-actions";
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -24,14 +26,18 @@ const itemVariants: any = {
 };
 
 export default function SettingsPage() {
+    const router = useRouter();
     const { lang: globalLang, setLang, languages, t } = useLanguage();
     const [notifications, setNotifications] = useState(true);
-    const [apiKey, setApiKey] = useState("");
+    const [hfToken, setHfToken] = useState("");
+    const [geminiKey, setGeminiKey] = useState("");
     const [isSaved, setIsSaved] = useState(false);
 
     useEffect(() => {
-        const savedKey = localStorage.getItem("huggingface_api_key");
-        if (savedKey) setApiKey(savedKey);
+        const savedHfToken = localStorage.getItem("hf_token");
+        if (savedHfToken) setHfToken(savedHfToken);
+        const savedGemini = localStorage.getItem("gemini_api_key");
+        if (savedGemini) setGeminiKey(savedGemini);
     }, []);
 
     const saveLanguage = (code: string) => {
@@ -40,8 +46,16 @@ export default function SettingsPage() {
     };
 
     const saveApiKey = () => {
-        if (apiKey.trim()) {
-            localStorage.setItem("huggingface_api_key", apiKey.trim());
+        let updated = false;
+        if (hfToken.trim()) {
+            localStorage.setItem("hf_token", hfToken.trim());
+            updated = true;
+        }
+        if (geminiKey.trim()) {
+            localStorage.setItem("gemini_api_key", geminiKey.trim());
+            updated = true;
+        }
+        if (updated) {
             setIsSaved(true);
             setTimeout(() => setIsSaved(false), 2000);
         }
@@ -52,7 +66,7 @@ export default function SettingsPage() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="p-4 md:p-8 space-y-12 max-w-5xl mx-auto"
+            className="p-4 md:p-8 space-y-12 max-w-4xl mx-auto"
         >
             <motion.div variants={itemVariants} className="space-y-2">
                 <h1 className="text-5xl font-black tracking-tight text-slate-900 dark:text-white">
@@ -65,7 +79,27 @@ export default function SettingsPage() {
 
             <div className="space-y-10 pb-20">
                 {/* Preferences Grid */}
-                <div className="grid md:grid-cols-1 max-w-2xl gap-10">
+                <div className="grid md:grid-cols-1 gap-10">
+
+                    {/* Profile Link */}
+                    <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl group cursor-pointer hover:border-emerald-500/30 transition-colors" onClick={() => router.push('/settings/profile')}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-6">
+                                <div className="p-4 bg-emerald-500/10 rounded-2xl">
+                                    <User className="h-8 w-8 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-900 dark:text-white">{t("settings.profileDetails")}</h2>
+                                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest">{t("settings.viewAccountInfo")}</p>
+                                </div>
+                            </div>
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/20 transition-colors">
+                                <ChevronRight className="h-6 w-6 text-slate-400 group-hover:text-emerald-500" />
+                            </div>
+                        </div>
+                    </motion.div>
+
+
 
                     {/* Notifications */}
                     <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl group">
@@ -127,6 +161,15 @@ export default function SettingsPage() {
                             ))}
                         </div>
                     </div>
+                </motion.div>
+
+                {/* Logout Button */}
+                <motion.div variants={itemVariants} className="pt-10">
+                    <button 
+                        onClick={async () => await logout()}
+                        className="w-full flex items-center justify-center gap-3 p-6 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-[2rem] border-2 border-red-100 dark:border-red-500/20 transition-all font-black text-lg group"
+                    >
+                        <LogOut className="h-6 w-6 group-hover:-translate-x-1 transition-transform" />{t("settings.signOut")}</button>
                 </motion.div>
             </div>
         </motion.div>

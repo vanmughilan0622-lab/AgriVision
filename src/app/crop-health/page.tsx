@@ -201,10 +201,10 @@ export default function CropHealthPage() {
                 <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-2">
                         <h1 className="text-5xl font-black tracking-tight text-slate-900 dark:text-white">
-                            Crop <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">Hub</span>
+                            {t("health.title")}
                         </h1>
                         <p className="text-xl text-slate-500 dark:text-slate-400 font-medium">
-                            Critical biometric monitoring and specimen health orchestration.
+                            {t("health.subtitle")}
                         </p>
                     </div>
                     {!isAdding ? (
@@ -232,7 +232,7 @@ export default function CropHealthPage() {
                                             setShowSuggestions(true);
                                         }}
                                         onFocus={() => setShowSuggestions(true)}
-                                        placeholder="Enter crop name..."
+                                        placeholder={t("health.enterCropName")}
                                         autoFocus
                                         className="w-full bg-transparent border-none outline-none px-4 py-2 font-bold text-slate-900 dark:text-white min-w-[200px]"
                                     />
@@ -266,7 +266,7 @@ export default function CropHealthPage() {
                                     type="number"
                                     value={landArea}
                                     onChange={(e) => setLandArea(e.target.value)}
-                                    placeholder="Land Area (Acres)"
+                                    placeholder={t("health.landArea")}
                                     className="bg-transparent border-none outline-none px-4 py-2 font-bold text-slate-900 dark:text-white min-w-[150px]"
                                 />
                                 <button
@@ -324,14 +324,14 @@ export default function CropHealthPage() {
                                     <h3 className="font-black text-xl text-slate-900 dark:text-white">{crop.name}</h3>
                                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                                         <Calendar className="h-3 w-3" />
-                                        Planted: {crop.plantedDate}
+                                        {t("health.planted")}: {crop.plantedDate}
                                     </div>
                                 </div>
 
                                 <div className="space-y-4 flex-1">
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-end">
-                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Health Index</span>
+                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t("health.healthIndex")}</span>
                                             <div className="text-2xl font-black text-slate-900 dark:text-white">{crop.health}%</div>
                                         </div>
                                         <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
@@ -364,7 +364,7 @@ export default function CropHealthPage() {
                                             <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                                                 <Layers className="h-3 w-3 text-indigo-500" /> Area
                                             </span>
-                                            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{crop.area} Acres</p>
+                                            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">{crop.area} {t("health.acres")}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -385,7 +385,7 @@ export default function CropHealthPage() {
                                         >
                                             <div className="flex items-center gap-2">
                                                 <AlertTriangle className="h-4 w-4 text-rose-600" />
-                                                <span className="text-xs font-black text-rose-600 uppercase tracking-widest">{crop.alerts} Anomal{crop.alerts === 1 ? "y" : "ies"} Detected</span>
+                                                <span className="text-xs font-black text-rose-600 uppercase tracking-widest">{crop.alerts} {crop.alerts === 1 ? t("health.anomaly") : t("health.anomalies")}</span>
                                             </div>
                                             {expandedAnomalyId === crop.id ? <ChevronUp className="h-4 w-4 text-rose-500" /> : <ChevronDown className="h-4 w-4 text-rose-500" />}
                                         </button>
@@ -418,7 +418,7 @@ export default function CropHealthPage() {
                                 )}
 
                                 <button onClick={() => setSelectedCrop(crop)} className="w-full py-4 bg-slate-900 text-white dark:bg-emerald-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95">
-                                    View Details
+                                    {t("health.viewDetails")}
                                 </button>
                             </div>
                         </motion.div>
@@ -462,7 +462,7 @@ export default function CropHealthPage() {
                                         <p className="font-bold text-slate-800 dark:text-slate-200">{selectedCrop.plantedDate}</p>
                                     </div>
                                     <div className="p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl space-y-1">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ShieldCheck className="h-3 w-3" /> Health</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ShieldCheck className="h-3 w-3" /> {t("health.health")}</span>
                                         <p className="font-bold text-slate-800 dark:text-slate-200">{selectedCrop.health}%</p>
                                     </div>
                                     <div className="p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl space-y-1">
@@ -470,18 +470,18 @@ export default function CropHealthPage() {
                                         <p className="font-bold text-slate-800 dark:text-slate-200">{selectedCrop.moisture}</p>
                                     </div>
                                     <div className="p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl space-y-1">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Thermometer className="h-3 w-3 text-amber-500" /> Temperature</span>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Thermometer className="h-3 w-3 text-amber-500" /> {t("health.temperature")}</span>
                                         <p className="font-bold text-slate-800 dark:text-slate-200">{selectedCrop.temp}</p>
                                     </div>
                                 </div>
                                 {selectedCrop.alerts > 0 && anomalyDetails[selectedCrop.name] && (
                                     <div className="space-y-3">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><AlertTriangle className="h-3.5 w-3.5 text-rose-500" /> Active Anomalies</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><AlertTriangle className="h-3.5 w-3.5 text-rose-500" /> {t("health.activeAnomalies")}</p>
                                         {anomalyDetails[selectedCrop.name].map((a, i) => (
                                             <div key={i} className={cn("p-4 rounded-2xl border", a.severity === "high" ? "bg-rose-500/5 border-rose-500/20" : "bg-amber-500/5 border-amber-500/20")}>
                                                 <p className={cn("text-xs font-black mb-1", a.severity === "high" ? "text-rose-600" : "text-amber-600")}>{a.title}</p>
                                                 <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{a.desc}</p>
-                                                <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-2">Action: {a.action}</p>
+                                                <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-2">{t("health.action")}{a.action}</p>
                                             </div>
                                         ))}
                                     </div>
