@@ -19,7 +19,7 @@ export async function getCropSuggestions(
         const fullPrompt = systemInstruction + "\n\nUser request: " + message;
         
         const payload = {
-            model: "meta-llama/Meta-Llama-3-8B-Instruct",
+            model: "mistralai/Mistral-7B-Instruct-v0.3",
             messages: [{ role: "user", content: fullPrompt }],
             max_tokens: 2000,
             temperature: 0.7
