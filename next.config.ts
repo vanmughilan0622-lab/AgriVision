@@ -11,9 +11,10 @@ const withPWA = withPWAInit({
   skipWaiting: true,
 });
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
-  // your other next config options here
+  turbopack: {
+    root: process.cwd(),
+  },
 };
 
 export default withNextIntl(withPWA(nextConfig));
