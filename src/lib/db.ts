@@ -5,9 +5,9 @@ import ws from 'ws';
 
 neonConfig.webSocketConstructor = ws;
 const dbUrl = 
-  process.env.DATABASE_URL || 
   process.env.dataagri_POSTGRES_PRISMA_URL || 
-  process.env.POSTGRES_PRISMA_URL || 
+  process.env.dataagri_DATABASE_URL || 
+  process.env.DATABASE_URL || 
   "";
 
 const pool = new Pool({ connectionString: dbUrl });
